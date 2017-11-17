@@ -1,0 +1,25 @@
+# agt2
+# mkdir -p /root/flume/log /root/flume/sink/data/agt2
+# nohup flume-ng agent --conf $FLUME_HOME/conf -f /root/flume/1-avro-file -n agt2 -Dflume.root.logger=INFO,console > /root/flume/log/agt2.log 2>&1 &
+
+agt2.sources = src1
+agt2.channels = c1
+agt2.sinks = sink1
+
+# sources
+agt2.sources.src1.type = avro
+agt2.sources.src1.bind = localhost
+agt2.sources.src1.port = 11100
+agt2.sources.src1.channels = c1
+
+# channels
+agt2.channels.c1.type = file
+agt2.channels.c1.checkpointDir = /root/flume/channel/checkpoint/agt2
+agt2.channels.c1.dataDirs = /root/flume/channel/data/agt2
+agt2.channels.c1.checkpointInterval = 60000
+
+# sinks
+agt2.sinks.sink1.type = file_roll
+agt2.sinks.sink1.channel = c1
+agt2.sinks.sink1.sink.directory = /root/flume/sink/data/agt2
+agt2.sinks.sink1.sink.rollInterval = 60

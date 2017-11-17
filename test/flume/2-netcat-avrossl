@@ -1,0 +1,30 @@
+# agt1
+# mkdir -p /root/flume/log
+# nohup flume-ng agent --conf $FLUME_HOME/conf -f /root/flume/2-netcat-avrossl -n agt1 -Dflume.root.logger=INFO,console > /root/flume/log/agt1.log 2>&1 &
+
+agt1.sources = src1
+agt1.channels = c1
+agt1.sinks = sink1
+
+# sources
+agt1.sources.src1.type = netcat
+agt1.sources.src1.bind = localhost
+agt1.sources.src1.port = 11000
+agt1.sources.src1.channels = c1
+
+# channels
+agt1.channels.c1.type = memory
+agt1.channels.c1.capacity = 1000
+agt1.channels.c1.transactionCapacity = 100
+
+# sinks
+agt1.sinks.sink1.type = avro
+agt1.sinks.sink1.hostname = localhost
+agt1.sinks.sink1.port = 11100
+agt1.sinks.sink1.channel = c1
+# ssl
+agt1.sinks.sink1.ssl = true
+agt1.sinks.sink1.truststore = /root/flume/ssl/agt.jks
+agt1.sinks.sink1.truststore-type = JKS
+agt1.sinks.sink1.truststore-password = 123456
+agt1.sinks.sink1.compression-type = deflate

@@ -1,0 +1,39 @@
+# agt2
+# mkdir -p /root/flume/log /root/flume/sink/data/agt2
+# nohup flume-ng agent --conf $FLUME_HOME/conf -f /root/flume/2-avrossl-file -n agt2 -Dflume.root.logger=INFO,console > /root/flume/log/agt2.log 2>&1 &
+
+# 生成证书
+#keytool -genkeypair -alias agt2key -keyalg RSA -keypass 123456 -validity 365 -keystore agt2.jks -storepass 123456 -dname "CN=zhangchao, OU=jiuzhitx.com, O=jiuzhitx, L=shenzhen, ST=guangdong, C=CN"
+# 查看证书
+#keytool -list -v -keystore agt2.jks -storepass 123456
+# 导出证书
+#keytool -exportcert -alias agt2key -keystore agt2.jks -file agt1.crt -storepass 123456
+# 导入证书
+#keytool -importcert -keystore agt1.jks -file agt1.crt -alias agt1key
+
+agt2.sources = src1
+agt2.channels = c1
+agt2.sinks = sink1
+
+# sources
+agt2.sources.src1.type = avro
+agt2.sources.src1.bind = localhost
+agt2.sources.src1.port = 11100
+agt2.sources.src1.channels = c1
+# ssl
+agt2.sources.src1.ssl = true
+agt2.sources.src1.keystore = /root/flume/ssl/agt.jks
+agt2.sources.src1.keystore-password=123456
+agt2.sources.src1.keystore-type=JKS
+
+# channels
+agt2.channels.c1.type = file
+agt2.channels.c1.checkpointDir = /root/flume/channel/checkpoint/agt2
+agt2.channels.c1.dataDirs = /root/flume/channel/data/agt2
+agt2.channels.c1.checkpointInterval = 60000
+
+# sinks
+agt2.sinks.sink1.type = file_roll
+agt2.sinks.sink1.channel = c1
+agt2.sinks.sink1.sink.directory = /root/flume/sink/data/agt2
+agt2.sinks.sink1.sink.rollInterval = 60

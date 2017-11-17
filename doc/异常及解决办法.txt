@@ -1,0 +1,19 @@
+﻿异常信息：
+Container [pid=20184,containerID=container_e05_1465974804810_0003_01_000040] is running beyond virtual memory limits. Current usage: 245.9 MB of 1 GB physical memory used; 9.0 GB of 2.1 GB virtual memory used. Killing container.
+相关参数：
+yarn.scheduler.minimum-allocation-mb
+yarn.nodemanager.vmem-pmem-ratio
+mapred.child.java.opts
+
+异常信息：
+Error: org.apache.hadoop.ipc.RemoteException(org.apache.hadoop.hdfs.server.namenode.LeaseExpiredException): No lease on /benchmarks/TestDFSIO/io_data/test_io_9 (inode 221184): File does not exist. Holder DFSClient_attempt_1465974804810_0006_m_000099_0_1086438656_1 does not have any open files.
+相关参数：
+dfs.datanode.max.transfer.threads
+
+
+异常信息：
+Error: java.io.IOException: Initialization of all the collectors failed. Error in last collector was :Invalid "mapreduce.task.io.sort.mb": 2048
+相关参数：
+mapreduce.task.io.sort.mb
+应该小于2G
+https://issues.apache.org/jira/browse/MAPREDUCE-2308
