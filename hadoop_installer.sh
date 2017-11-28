@@ -577,7 +577,7 @@ function admin()
     # 查看namenode状态
     hdfs haadmin -getServiceState nn1/nn2
 
-    # 手动切换namenode状态
+    # 手动切换namenode状态 nn1 -> standby nn2 -> active
     hdfs haadmin -failover --forcefence --forceactive nn1 nn2
 
     # 强制切换
@@ -619,6 +619,15 @@ function admin()
 
     # 获取配置信息
     hdfs getconf -confKey dfs.datanode.max.transfer.threads
+
+    # 设置数据平衡临时带宽
+    hdfs dfsadmin -setBalancerBandwidth 52428800
+    # 运行数据平衡(前台运行)
+    hdfs balancer -threshold 5
+    # 运行数据平衡(后台运行)
+    $HADOOP_HOME/sbin/start-balancer.sh -threshold 5
+    # 停止数据平衡
+    $HADOOP_HOME/sbin/stop-balancer.sh
 
     # 打印xml配置信息
     print_config < $HADOOP_CONF_DIR/core-site.xml
