@@ -327,7 +327,7 @@ function install_scala()
 # 判断用户是否存在
 function exist_user()
 {
-    egrep "^$1:" /etc/passwd
+    grep "^$1:" /etc/passwd
 }
 
 # 创建用户
@@ -345,7 +345,7 @@ function create_user()
             autossh "$admin_passwd" ${admin_user}@${ip} "groupadd -f $THE_GROUP"
             if [[ -z `exist_user $THE_USER` ]]; then
                 autossh "$admin_passwd" ${admin_user}@${ip} "useradd $THE_USER -g $THE_GROUP"
-            if
+            fi
             autossh "$admin_passwd" ${admin_user}@${ip} "echo $owner_passwd | passwd --stdin $THE_USER"
         fi
     done

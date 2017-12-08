@@ -20,11 +20,16 @@ source $DIR/common.sh
 
 # hadoop集群配置信息
 # ip hostname admin_user admin_passwd owner_passwd roles
-HOSTS="10.10.20.99 yygz-99.tjinserv.com root 7oGTb2P3nPQKHWw1ZG hadoop123 namenode,zkfc,yarn,historyserver
-10.10.20.101 yygz-101.tjinserv.com root 7oGTb2P3nPQKHWw1ZG hadoop123 namenode,zkfc,httpfs,yarn
-10.10.20.104 yygz-104.tjinserv.com root 7oGTb2P3nPQKHWw1ZG hadoop123 datanode,journalnode,zookeeper
-10.10.20.110 yygz-110.tjinserv.com root 7oGTb2P3nPQKHWw1ZG hadoop123 datanode,journalnode,zookeeper
-10.10.20.111 yygz-111.tjinserv.com root 7oGTb2P3nPQKHWw1ZG hadoop123 datanode,journalnode,zookeeper"
+HOSTS="10.10.10.111 yygz-111.gzserv.com root GVhZgnUr5kn7Mkcq hadoop namenode,zkfc,yarn,historyserver
+10.10.10.244 yygz-244.gzserv.com root GVhZgnUr5kn7Mkcq hadoop namenode,zkfc,httpfs,yarn
+10.10.10.13 yygz-13.gzserv.com root GVhZgnUr5kn7Mkcq hadoop datanode,journalnode,zookeeper
+10.10.10.145 yygz-145.gzserv.com root GVhZgnUr5kn7Mkcq hadoop datanode,journalnode,zookeeper
+10.10.10.147 yygz-147.gzserv.com root GVhZgnUr5kn7Mkcq hadoop datanode,journalnode,zookeeper
+10.10.10.28 yygz-28.gzserv.com root GVhZgnUr5kn7Mkcq hadoop namenode,zkfc,yarn,historyserver
+10.10.10.29 yygz-29.gzserv.com root GVhZgnUr5kn7Mkcq hadoop namenode,zkfc,httpfs,yarn
+10.10.10.30 yygz-30.gzserv.com root GVhZgnUr5kn7Mkcq hadoop datanode,journalnode,zookeeper
+10.10.10.31 yygz-31.gzserv.com root GVhZgnUr5kn7Mkcq hadoop datanode,journalnode,zookeeper
+10.10.10.32 yygz-32.gzserv.com root GVhZgnUr5kn7Mkcq hadoop datanode,journalnode,zookeeper"
 # 测试环境
 if [[ "$LOCAL_IP" =~ 192.168 ]]; then
 HOSTS="192.168.1.178 hdpc1-mn01 root 123456 123456 namenode,zkfc,yarn,historyserver

@@ -25,11 +25,16 @@ LIB_DIR=lib
 
 # 集群配置信息
 # ip hostname admin_user admin_passwd roles
-HOSTS="10.10.20.99 yygz-99.tjinserv.com root 7oGTb2P3nPQKHWw1ZG namenode,zkfc,yarn,historyserver,hbase-master,metastore,spark-master,gmond
-10.10.20.101 yygz-101.tjinserv.com root 7oGTb2P3nPQKHWw1ZG namenode,zkfc,httpfs,yarn,hbase-master,hiveserver2,spark-master,history-server,gmetad
-10.10.20.104 yygz-104.tjinserv.com root 7oGTb2P3nPQKHWw1ZG datanode,journalnode,zookeeper,regionserver,hive-client,spark-worker,flume,kafka,gmond
-10.10.20.110 yygz-110.tjinserv.com root 7oGTb2P3nPQKHWw1ZG datanode,journalnode,zookeeper,regionserver,hive-client,spark-worker,flume,kafka,gmond
-10.10.20.111 yygz-111.tjinserv.com root 7oGTb2P3nPQKHWw1ZG datanode,journalnode,zookeeper,regionserver,hive-client,spark-worker,flume,kafka,gmond"
+HOSTS="10.10.10.111 yygz-111.gzserv.com root GVhZgnUr5kn7Mkcq namenode,zkfc,yarn,historyserver,hbase-master,metastore,spark-master,gmond
+10.10.10.244 yygz-244.gzserv.com root GVhZgnUr5kn7Mkcq namenode,zkfc,httpfs,yarn,hbase-master,hiveserver2,spark-master,history-server,gmetad
+10.10.10.13 yygz-13.gzserv.com root GVhZgnUr5kn7Mkcq datanode,journalnode,zookeeper,regionserver,hive-client,spark-worker,flume,kafka,gmond
+10.10.10.145 yygz-145.gzserv.com root GVhZgnUr5kn7Mkcq datanode,journalnode,zookeeper,regionserver,hive-client,spark-worker,flume,kafka,gmond
+10.10.10.147 yygz-147.gzserv.com root GVhZgnUr5kn7Mkcq datanode,journalnode,zookeeper,regionserver,hive-client,spark-worker,flume,kafka,gmond
+10.10.10.28 yygz-28.gzserv.com root GVhZgnUr5kn7Mkcq namenode,zkfc,yarn,historyserver,hbase-master,metastore,spark-master,gmond
+10.10.10.29 yygz-29.gzserv.com root GVhZgnUr5kn7Mkcq namenode,zkfc,httpfs,yarn,hbase-master,hiveserver2,spark-master,history-server,gmetad
+10.10.10.30 yygz-30.gzserv.com root GVhZgnUr5kn7Mkcq datanode,journalnode,zookeeper,regionserver,hive-client,spark-worker,flume,kafka,gmond
+10.10.10.31 yygz-31.gzserv.com root GVhZgnUr5kn7Mkcq datanode,journalnode,zookeeper,regionserver,hive-client,spark-worker,flume,kafka,gmond
+10.10.10.32 yygz-32.gzserv.com root GVhZgnUr5kn7Mkcq datanode,journalnode,zookeeper,regionserver,hive-client,spark-worker,flume,kafka,gmond"
 
 # hadoop组件版本
 JAVA_VERSION=1.7.0_80
@@ -148,7 +153,7 @@ DFS_DATA_DIR=$HADOOP_DATA_DIR/dfsdata
 # $HADOOP_CONF_DIR/hadoop-env.sh
 HADOOP_NAMENODE_HEAP="-Xms16g -Xmx16g"
 HADOOP_DATANODE_HEAP="-Xms2g -Xmx2g"
-HADOOP_CLIENT_HEAP="-Xms32m -Xmx1g"
+HADOOP_CLIENT_HEAP="-Xms32m -Xmx4g"
 # $HADOOP_CONF_DIR/yarn-env.sh
 YARN_RESOURCEMANAGER_HEAP="-Xms4g -Xmx4g"
 YARN_NODEMANAGER_HEAP="-Xms2g -Xmx2g"
