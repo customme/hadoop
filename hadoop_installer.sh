@@ -570,6 +570,15 @@ function admin()
     # 检测块
     hdfs fsck /
 
+    # 查看正在被打开的文件
+    hdfs fsck / -openforwrite
+
+    # 查看缺失块
+    hdfs fsck / -list-corruptfileblocks
+
+    # 恢复租约
+    hdfs debug recoverLease [-path path] [-retries <num-retries>]
+
     # 删除坏块
     hdfs fsck / -delete
 

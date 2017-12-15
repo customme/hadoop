@@ -303,6 +303,12 @@ function test()
 
     # 获取表数据
     scan 'test'
+    # 指定行健范围
+    scan 'test', { STARTROW => 'row001', STOPROW => 'row010' }
+    # 指定时间范围
+    scan 'test', { TIMERANGE => [1513321938, 1513325538] }
+    # 逆向扫描
+    scan 'test', { REVERSED => true, LIMIT => 3 }
 
     # 获取一行数据
     get 'test', 'row1'
