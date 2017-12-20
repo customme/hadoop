@@ -129,6 +129,9 @@ function install()
     if [[ -n "$ZK_CLIENT_HEAP" ]]; then
         sed -i "/\$JAVA/ i\CLIENT_JVMFLAGS=\"${ZK_CLIENT_HEAP}\"\n" $ZK_NAME/bin/zkCli.sh
     fi
+    if [[ -n "$ZOO_LOG4J_PROP" ]]; then
+        sed -i "s/^\([ ]*ZOO_LOG4J_PROP=\).*/\1$\"{ZOO_LOG4J_PROP}\"/" $ZK_NAME/bin/zkEnv.sh
+    fi
 
     # 压缩配置好的zookeeper
     mv -f $ZK_PKG ${ZK_PKG}.o
@@ -233,6 +236,12 @@ function admin()
 
     # 列出所有watcher信息
     echo wchc | nc hdpc1-sn001 2181
+
+    # 查看启动参数
+    zkServer.sh print-cmd
+
+    # 前台启动
+    zkServer.sh start-foreground
 
     # 查看日志
     java -cp $ZK_HOME/${ZK_NAME}.jar:$ZK_HOME/lib/slf4j-api-1.6.1.jar org.apache.zookeeper.server.LogFormatter log/version-2/log.100000001

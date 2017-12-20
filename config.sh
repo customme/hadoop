@@ -38,7 +38,7 @@ HOSTS="10.10.10.111 yygz-111.gzserv.com root GVhZgnUr5kn7Mkcq namenode,zkfc,yarn
 
 # hadoop组件版本
 JAVA_VERSION=1.7.0_80
-HADOOP_VERSION=2.7.4
+HADOOP_VERSION=2.7.5
 ZK_VERSION=3.4.11
 HBASE_VERSION=1.2.6
 HIVE_VERSION=1.2.2

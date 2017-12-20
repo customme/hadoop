@@ -12,7 +12,7 @@ HIVE_HOME=/usr/hive/current
 SPARK_HOME=/usr/spark/current
 
 # zookeeper
-* * * * * ($ZK_HOME/bin/zkServer.sh status || ((echo "`date +'\%F \%T'` [ Start zookeeper ]";source /etc/profile;$ZK_HOME/bin/zkServer.sh start) >> $ZK_HOME/zk_start.log 2>&1))
+* * * * * ($ZK_HOME/bin/zkServer.sh status || ((echo "`date +'\%F \%T'` [ Start zookeeper ]";source /etc/profile;cd $ZK_HOME;./bin/zkServer.sh start) >> $ZK_HOME/zk_start.log 2>&1))
 
 # namenode
 * * * * * ($HADOOP_HOME/bin/hdfs haadmin -getServiceState nn1 || ((echo "`date +'\%F \%T'` [ Start namenode ]";$HADOOP_HOME/sbin/hadoop-daemon.sh start namenode) >> $HADOOP_HOME/namenode_start.log 2>&1))
