@@ -231,6 +231,20 @@ function admin()
     # 查看topic详细
     $KAFKA_HOME/bin/kafka-topics.sh --describe --topic test --zookeeper $zk_list
 
+    # 删除topic
+    $KAFKA_HOME/bin/kafka-topics.sh --delete --topic test --zookeeper $zk_list
+    # 删除kafka文件存储目录
+    rm -rf /tmp/kafka-logs/test
+    # 删除zookeeper节点(如果delete.topic.enable=false)
+    echo "rmr /brokers/topics/test" | zkCli.sh
+    echo "delete /config/topics/test" | zkCli.sh
+    # 查看已删除topic
+    echo "ls /admin/delete_topics" | zkCli.sh
+
+    # 查看topic的offset最小值/最大值
+    $KAFKA_HOME/bin/kafka-run-class.sh kafka.tools.GetOffsetShell --broker-list $broker_list --topic test --time -2
+    $KAFKA_HOME/bin/kafka-run-class.sh kafka.tools.GetOffsetShell --broker-list $broker_list --topic test --time -1
+
     # 增加partition(kafka不支持减少partition的数量)
     $KAFKA_HOME/bin/kafka-topics.sh --alter --topic test --partitions 4 --zookeeper $zk_list
 
@@ -250,6 +264,9 @@ function admin()
 
     # 查看消费组
     $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server $broker_list --describe --group group
+
+    # 查看消费的offset
+    $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server $broker_list --topic __consumer_offsets --formatter "kafka.coordinator.GroupMetadataManager\$OffsetsMessageFormatter" --from-beginning
 
     # kafka底层消费
     $KAFKA_HOME/bin/kafka-simple-consumer-shell.sh --broker-list $broker_list --partition 1 --offset 4 --max-messages 3 --topic test

@@ -243,6 +243,9 @@ function admin()
     # 前台启动
     zkServer.sh start-foreground
 
+    # 执行zookeeper命令
+    echo "ls /" zkCli.sh
+
     # 查看日志
     java -cp $ZK_HOME/${ZK_NAME}.jar:$ZK_HOME/lib/slf4j-api-1.6.1.jar org.apache.zookeeper.server.LogFormatter log/version-2/log.100000001
 }

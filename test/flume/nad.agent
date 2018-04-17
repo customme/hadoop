@@ -1,0 +1,42 @@
+# nohup flume-ng agent --conf $FLUME_HOME/conf -f $ETL_HOME/nad/nad.agent -n nad > /work/logs/flume/nad.log 2>&1 &
+# keytool -genkey -alias nad -keypass nad123456 -keyalg RSA -keysize 1024 -validity 730 -keystore ./nad.jks -storepass nad123456 -dname "CN=(nad),OU=(9zhitx),O=(yaya),L=(深圳),ST=(广东),C=(中国)"
+# keytool -list -v -keystore ./nad.jks -storepass nad123456
+# keytool -import -alias yaya -file yaya.cert -keystore nad.jks -storepass nad123456
+
+# Name the components on this agent
+nad.sources = r1
+nad.sinks = k1
+nad.channels = c1
+
+# Describe the source
+nad.sources.r1.type = org.apache.flume.source.kafka.KafkaSource
+nad.sources.r1.kafka.bootstrap.servers=localhost:9092
+nad.sources.r1.kafka.topics = topic_ad_visit,topic_ad_reply,topic_ad_advs,topic_ad_upgrd
+nad.sources.r1.kafka.consumer.group.id = flume_ng
+nad.sources.r1.kafka.consumer.auto.offset.reset = earliest
+nad.sources.r1.batchSize = 5000
+nad.sources.r1.batchDurationMillis = 2000
+
+# Bind interceptors to source
+nad.sources.r1.interceptors = i1
+nad.sources.r1.interceptors.i1.type = search_replace
+nad.sources.r1.interceptors.i1.searchPattern = ^[^\\{]*(.*)$
+nad.sources.r1.interceptors.i1.replaceString = $1
+
+# Describe the sink
+nad.sinks.k1.type = avro
+nad.sinks.k1.hostname = 183.232.150.25
+nad.sinks.k1.port = 10000
+nad.sinks.k1.ssl = true
+nad.sinks.k1.truststore = /usr/local/etl/nad/nad.jks
+nad.sinks.k1.truststore-password = nad123456
+
+# Use a channel which buffers events in local file
+nad.channels.c1.type = file
+nad.channels.c1.checkpointDir = /work/logs/flume/checkpoint/nad
+nad.channels.c1.dataDirs = /work/logs/flume/data/nad
+nad.channels.c1.checkpointInterval = 30000
+
+# Bind the source and sink to the channel
+nad.sources.r1.channels = c1
+nad.sinks.k1.channel = c1

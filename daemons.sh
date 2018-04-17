@@ -48,7 +48,7 @@ SPARK_HOME=/usr/spark/current
 * * * * * ([[ ! `ps aux | grep HiveServer2 | grep -v grep` ]] && ((echo "`date +'\%F \%T'` [ Start hiveserver2 ]";source /etc/profile;nohup $HIVE_HOME/bin/hiveserver2) >> $HIVE_HOME/hiveserver2_start.log 2>&1 &))
 
 # spark master
-* * * * * ([[ ! `ps aux | grep 'spark.*Master' | grep -v grep` ]] && ((echo "`date +'\%F \%T'` [ Start spark master ]";$SPARK_HOME/sbin/start-master.sh) >> $SPARK_HOME/master_start.log 2>&1))
+* * * * * ([[ -z `ps aux | grep 'spark.*Master' | grep -v grep` ]] && ((echo "`date +'\%F \%T'` [ Start spark master ]";$SPARK_HOME/sbin/start-master.sh) >> $SPARK_HOME/master_start.log 2>&1))
 
 # spark worker
 SPARK_MASTER=spark://hdpc1-dn001:7077,hdpc1-dn002:7077

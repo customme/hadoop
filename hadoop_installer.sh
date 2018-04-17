@@ -352,14 +352,14 @@ function init()
     # 出错立即退出
     set -e
 
-    # 格式化zkfc
-    echo "$HOSTS" | grep namenode | head -n 1 | while read ip hostname admin_user admin_passwd owner_passwd roles; do
-        autossh "$owner_passwd" ${HDFS_USER}@${ip} "$HADOOP_HOME/bin/hdfs zkfc -formatZK -force -nonInteractive"
-    done
-
     # 启动journalnode
     echo "$HOSTS" | grep namenode | head -1 | while read ip hostname admin_user admin_passwd owner_passwd roles; do
         autossh "$owner_passwd" ${HDFS_USER}@${ip} "$HADOOP_HOME/sbin/hadoop-daemons.sh start journalnode"
+    done
+
+    # 格式化zkfc
+    echo "$HOSTS" | grep namenode | head -n 1 | while read ip hostname admin_user admin_passwd owner_passwd roles; do
+        autossh "$owner_passwd" ${HDFS_USER}@${ip} "$HADOOP_HOME/bin/hdfs zkfc -formatZK -force -nonInteractive"
     done
 
     # 如果从non-HA转HA，需要初始化journalnode
@@ -370,6 +370,11 @@ function init()
     # 格式化hdfs
     echo "$HOSTS" | grep namenode | head -n 1 | while read ip hostname admin_user admin_passwd owner_passwd roles; do
         autossh "$owner_passwd" ${HDFS_USER}@${ip} "$HADOOP_HOME/bin/hdfs namenode -format"
+    done
+
+    # 启动zkfc
+    echo "$HOSTS" | grep zkfc | while read ip hostname admin_user admin_passwd owner_passwd roles; do
+        autossh "$owner_passwd" ${HDFS_USER}@${ip} "$HADOOP_HOME/sbin/hadoop-daemon.sh start zkfc"
     done
 
     # 启动active namenode
@@ -396,11 +401,6 @@ function init()
     # 启动standby resourcemanager
     echo "$HOSTS" | grep yarn | sed '1 d' | while read ip hostname admin_user admin_passwd owner_passwd roles; do
         autossh "$owner_passwd" ${HDFS_USER}@${ip} "$HADOOP_HOME/sbin/yarn-daemon.sh start resourcemanager"
-    done
-
-    # 启动zkfc
-    echo "$HOSTS" | grep zkfc | while read ip hostname admin_user admin_passwd owner_passwd roles; do
-        autossh "$owner_passwd" ${HDFS_USER}@${ip} "$HADOOP_HOME/sbin/hadoop-daemon.sh start zkfc"
     done
 
     # 启动historyserver
