@@ -18,6 +18,18 @@ source ~/.bash_profile
 source $DIR/common.sh
 
 
+# zookeeper集群配置信息
+# ip hostname admin_user admin_passwd owner_passwd myid
+HOSTS="10.10.10.65 yygz-65.gzserv.com root 123456 zookeeper123 1
+10.10.10.66 yygz-66.gzserv.com root 123456 zookeeper123 2
+10.10.10.67 yygz-67.gzserv.com root 123456 zookeeper123 3"
+# 测试环境
+if [[ "$LOCAL_IP" =~ 192.168 ]]; then
+HOSTS="192.168.1.227 hdpc1-sn001 root 123456 123456 1
+192.168.1.229 hdpc1-sn002 root 123456 123456 2
+192.168.1.230 hdpc1-sn003 root 123456 123456 3"
+fi
+
 # zookeeper镜像
 ZK_MIRROR=http://mirror.bit.edu.cn/apache/zookeeper
 ZK_NAME=zookeeper-$ZK_VERSION
@@ -25,18 +37,6 @@ ZK_NAME=zookeeper-$ZK_VERSION
 ZK_PKG=${ZK_NAME}.tar.gz
 # zookeeper安装包下载地址
 ZK_URL=$ZK_MIRROR/$ZK_NAME/$ZK_PKG
-
-# zookeeper集群配置信息
-# ip hostname admin_user admin_passwd owner_passwd myid
-HOSTS="10.10.20.104 yygz-104.tjinserv.com root 7oGTb2P3nPQKHWw1ZG zookeeper123 1
-10.10.20.110 yygz-110.tjinserv.com root 7oGTb2P3nPQKHWw1ZG zookeeper123 2
-10.10.20.111 yygz-111.tjinserv.com root 7oGTb2P3nPQKHWw1ZG zookeeper123 3"
-# 测试环境
-if [[ "$LOCAL_IP" =~ 192.168 ]]; then
-HOSTS="192.168.1.227 hdpc1-sn001 root 123456 123456 1
-192.168.1.229 hdpc1-sn002 root 123456 123456 2
-192.168.1.230 hdpc1-sn003 root 123456 123456 3"
-fi
 
 # 当前用户名，所属组
 THE_USER=$ZK_USER
@@ -105,6 +105,41 @@ function set_env()
     done
 }
 
+# zookeeper 配置
+function zookeeper_config()
+{
+    echo "
+tickTime=2000
+initLimit=10
+syncLimit=5
+dataDir=$ZK_DATA_DIR
+dataLogDir=$ZK_LOG_DIR
+clientPort=$ZK_SERVER_PORT
+maxClientCnxns=100
+autopurge.snapRetainCount=5
+autopurge.purgeInterval=1
+"
+    echo "$HOSTS" | while read ip hostname admin_user admin_passwd owner_passwd myid; do
+        echo "server.$myid=$hostname:2888:3888"
+    done
+}
+
+# 配置 zookeeper
+function config_zookeeper()
+{
+    zookeeper_config > $ZK_NAME/conf/zoo.cfg
+
+    if [[ -n "$ZK_SERVER_HEAP" ]]; then
+        sed -i "/\$SERVER_JVMFLAGS/{x;/^$/s/^/SERVER_JVMFLAGS=\"${ZK_SERVER_HEAP}\"/p;x}" $ZK_NAME/bin/zkServer.sh
+    fi
+    if [[ -n "$ZK_CLIENT_HEAP" ]]; then
+        sed -i "/\$JAVA/ i\CLIENT_JVMFLAGS=\"${ZK_CLIENT_HEAP}\"\n" $ZK_NAME/bin/zkCli.sh
+    fi
+    if [[ -n "$ZOO_LOG4J_PROP" ]]; then
+        sed -i "s/^\([ ]*ZOO_LOG4J_PROP=\).*/\1$\"{ZOO_LOG4J_PROP}\"/" $ZK_NAME/bin/zkEnv.sh
+    fi
+}
+
 # 安装
 function install()
 {
@@ -121,17 +156,7 @@ function install()
     tar -zxf $ZK_PKG
 
     # 配置zookeeper
-    cp -f $CONF_DIR/zoo.cfg $ZK_NAME/conf
-    cp -f $CONF_DIR/log4j.properties $ZK_NAME/conf
-    if [[ -n "$ZK_SERVER_HEAP" ]]; then
-        sed -i "/\$SERVER_JVMFLAGS/{x;/^$/s/^/SERVER_JVMFLAGS=\"${ZK_SERVER_HEAP}\"/p;x}" $ZK_NAME/bin/zkServer.sh
-    fi
-    if [[ -n "$ZK_CLIENT_HEAP" ]]; then
-        sed -i "/\$JAVA/ i\CLIENT_JVMFLAGS=\"${ZK_CLIENT_HEAP}\"\n" $ZK_NAME/bin/zkCli.sh
-    fi
-    if [[ -n "$ZOO_LOG4J_PROP" ]]; then
-        sed -i "s/^\([ ]*ZOO_LOG4J_PROP=\).*/\1$\"{ZOO_LOG4J_PROP}\"/" $ZK_NAME/bin/zkEnv.sh
-    fi
+    config_zookeeper
 
     # 压缩配置好的zookeeper
     mv -f $ZK_PKG ${ZK_PKG}.o
@@ -188,6 +213,9 @@ function install()
 
     # 设置zookeeper环境变量
     set_env
+
+    # 出错不要立即退出
+    set +e
 }
 
 # 启动zookeeper集群

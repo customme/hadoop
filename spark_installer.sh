@@ -20,11 +20,11 @@ source $DIR/common.sh
 
 # spark集群配置信息
 # ip hostname admin_user admin_passwd owner_passwd roles
-HOSTS="10.10.20.99 yygz-99.tjinserv.com root 7oGTb2P3nPQKHWw1ZG spark123 spark-master
-10.10.20.101 yygz-101.tjinserv.com root 7oGTb2P3nPQKHWw1ZG spark123 spark-master,history-server
-10.10.20.104 yygz-104.tjinserv.com root 7oGTb2P3nPQKHWw1ZG spark123 spark-worker,zookeeper
-10.10.20.110 yygz-110.tjinserv.com root 7oGTb2P3nPQKHWw1ZG spark123 spark-worker,zookeeper
-10.10.20.111 yygz-111.tjinserv.com root 7oGTb2P3nPQKHWw1ZG spark123 spark-worker,zookeeper"
+HOSTS="10.10.10.61 yygz-61.gzserv.com root 123456 spark123 spark-master
+10.10.10.64 yygz-64.gzserv.com root 123456 spark123 spark-master,history-server
+10.10.10.65 yygz-65.gzserv.com root 123456 spark123 spark-worker,zookeeper
+10.10.10.66 yygz-66.gzserv.com root 123456 spark123 spark-worker,zookeeper
+10.10.10.67 yygz-67.gzserv.com root 123456 spark123 spark-worker,zookeeper"
 # 测试环境
 if [[ "$LOCAL_IP" =~ 192.168 ]]; then
 HOSTS="192.168.1.178 hdpc1-mn01 root 123456 123456 spark-master
@@ -40,8 +40,6 @@ if [[ $HADOOP_VERSION =~ ^2.[23467] ]]; then
     SPARK_NAME=spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION:0:3}
 elif [[ $HADOOP_VERSION =~ ^2.5 ]]; then
     SPARK_NAME=spark-${SPARK_VERSION}-bin-hadoop2.4
-elif [[ $HADOOP_VERSION =~ ^2.7 ]]; then
-    SPARK_NAME=spark-${SPARK_VERSION}-bin-hadoop2.6
 fi
 # spark安装包名
 SPARK_PKG=${SPARK_NAME}.tgz
@@ -179,21 +177,6 @@ function config_spark()
 
     # 添加slaves
     echo "$HOSTS" | awk '$0 ~ /spark-worker/ {print $2}' > $SPARK_NAME/conf/slaves
-
-    if [[ -n "$YARN_STAG_DIR" ]]; then
-        su -l $HDFS_USER -c "hdfs dfs -mkdir -p $YARN_STAG_DIR/$SPARK_USER"
-        su -l $HDFS_USER -c "hdfs dfs -chown -R ${SPARK_USER}:${SPARK_GROUP} $YARN_STAG_DIR/$SPARK_USER"
-        su -l $HDFS_USER -c "hdfs dfs -chmod -R g+x $YARN_STAG_DIR"
-    fi
-
-    if [[ -n "$SPARK_HISTORY_LOG_DIR" ]]; then
-        su -l $HDFS_USER -c "hdfs dfs -mkdir -p $SPARK_HISTORY_LOG_DIR"
-        su -l $HDFS_USER -c "hdfs dfs -chown -R ${SPARK_USER}:${SPARK_GROUP} $SPARK_HISTORY_LOG_DIR"
-
-        sed -i "$ a spark.eventLog.enabled           true" $SPARK_NAME/conf/spark-defaults.conf
-        sed -i "$ a spark.eventLog.dir               $SPARK_HISTORY_LOG_DIR" $SPARK_NAME/conf/spark-defaults.conf
-        sed -i "$ a spark.eventLog.compress          true" $SPARK_NAME/conf/spark-defaults.conf
-    fi
 }
 
 # 安装
@@ -271,6 +254,28 @@ function install()
 
     # 设置spark环境变量
     set_env
+}
+
+# 初始化
+function init()
+{
+    if [[ -n "$YARN_STAG_DIR" ]]; then
+        su -l $HDFS_USER -c "hdfs dfs -mkdir -p $YARN_STAG_DIR/$SPARK_USER"
+        su -l $HDFS_USER -c "hdfs dfs -chown -R ${SPARK_USER}:${SPARK_GROUP} $YARN_STAG_DIR/$SPARK_USER"
+        su -l $HDFS_USER -c "hdfs dfs -chmod -R g+x $YARN_STAG_DIR"
+    fi
+
+    if [[ -n "$SPARK_HISTORY_LOG_DIR" ]]; then
+        su -l $HDFS_USER -c "hdfs dfs -mkdir -p $SPARK_HISTORY_LOG_DIR"
+        su -l $HDFS_USER -c "hdfs dfs -chown -R ${SPARK_USER}:${SPARK_GROUP} $SPARK_HISTORY_LOG_DIR"
+
+        sed -i "$ a spark.eventLog.enabled           true" $SPARK_NAME/conf/spark-defaults.conf
+        sed -i "$ a spark.eventLog.dir               $SPARK_HISTORY_LOG_DIR" $SPARK_NAME/conf/spark-defaults.conf
+        sed -i "$ a spark.eventLog.compress          true" $SPARK_NAME/conf/spark-defaults.conf
+    fi
+
+    # 启动spark集群
+    start
 }
 
 # 启动spark集群

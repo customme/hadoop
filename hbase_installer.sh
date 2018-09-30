@@ -20,11 +20,11 @@ source $DIR/common.sh
 
 # hbase集群配置信息
 # ip hostname admin_user admin_passwd owner_passwd roles
-HOSTS="10.10.20.99 yygz-99.tjinserv.com root 7oGTb2P3nPQKHWw1ZG hbase123 hbase-master
-10.10.20.101 yygz-101.tjinserv.com root 7oGTb2P3nPQKHWw1ZG hbase123 hbase-master
-10.10.20.104 yygz-104.tjinserv.com root 7oGTb2P3nPQKHWw1ZG hbase123 regionserver,zookeeper
-10.10.20.110 yygz-110.tjinserv.com root 7oGTb2P3nPQKHWw1ZG hbase123 regionserver,zookeeper
-10.10.20.111 yygz-111.tjinserv.com root 7oGTb2P3nPQKHWw1ZG hbase123 regionserver,zookeeper"
+HOSTS="10.10.10.61 yygz-61.gzserv.com root 123456 hbase123 hbase-master
+10.10.10.64 yygz-64.gzserv.com root 123456 hbase123 hbase-master
+10.10.10.65 yygz-65.gzserv.com root 123456 hbase123 regionserver,zookeeper
+10.10.10.66 yygz-66.gzserv.com root 123456 hbase123 regionserver,zookeeper
+10.10.10.67 yygz-67.gzserv.com root 123456 hbase123 regionserver,zookeeper"
 # 测试环境
 if [[ "$LOCAL_IP" =~ 192.168 ]]; then
 HOSTS="192.168.1.178 hdpc1-mn01 root 123456 123456 hbase-master
@@ -38,7 +38,7 @@ fi
 HBASE_MIRROR=http://archive.apache.org/dist/hbase
 if [[ $HBASE_VERSION =~ ^0 ]]; then
     HBASE_NAME=hbase-${HBASE_VERSION}-hadoop2
-elif [[ $HBASE_VERSION =~ ^1 ]]; then
+elif [[ $HBASE_VERSION =~ ^[12] ]]; then
     HBASE_NAME=hbase-${HBASE_VERSION}
 fi
 # hbase安装包名
@@ -111,6 +111,27 @@ function set_env()
     done
 }
 
+# hbase 配置
+function hbase_config()
+{
+    local zookeepers=`echo "$HOSTS" | awk '$6 ~ /zookeeper/ {printf("%s,",$2)}' | sed 's/,$//'`
+
+    # Basic
+    echo "
+hbase.rootdir=hdfs://${NAMESERVICE_ID}$HBASE_ROOT_DIR
+hbase.cluster.distributed=true
+hbase.tmp.dir=$HBASE_TMP_DIR
+hbase.master.port=60000
+hbase.zookeeper.quorum=$zookeepers
+"
+
+    # Tuning
+    echo "
+hbase.regionserver.handler.count=30
+hbase.region.replica.replication.enabled=true
+"
+}
+
 # 配置hbase
 function config_hbase()
 {
@@ -157,8 +178,8 @@ function config_hbase()
     # 删除连续空行为一个
     sed -i '/^$/{N;/^\n$/d}' $HBASE_NAME/conf/hbase-env.sh
 
-    # 读取hbase-site.cfg文件配置hbase-site.xml
-    config_xml $HBASE_NAME/conf/hbase-site.xml
+    # 配置hbase-site.xml
+    hbase_config | config_xml $HBASE_NAME/conf/hbase-site.xml
 
     # 添加regionservers
     echo "$HOSTS" | awk '$0 ~ /regionserver/ {print $2}' > $HBASE_NAME/conf/regionservers
@@ -169,12 +190,6 @@ function config_hbase()
     # hbase监控
     if [[ -f $CONF_DIR/hadoop-metrics2-hbase.properties ]]; then
         cp -f $CONF_DIR/hadoop-metrics2-hbase.properties $HBASE_NAME/conf
-    fi
-
-    # 创建hdfs hbase根目录
-    if [[ -n "$HBASE_ROOT_DIR" ]]; then
-        su -l $HDFS_USER -c "hdfs dfs -mkdir -p $HBASE_ROOT_DIR"
-        su -l $HDFS_USER -c "hdfs dfs -chown -R ${HBASE_USER}:${HBASE_GROUP} $HBASE_ROOT_DIR"
     fi
 }
 
@@ -251,6 +266,19 @@ function install()
 
     # 设置hbase环境变量
     set_env
+}
+
+# 初始化
+function init()
+{
+    # 创建hdfs hbase根目录
+    if [[ -n "$HBASE_ROOT_DIR" ]]; then
+        su -l $HDFS_USER -c "hdfs dfs -mkdir -p $HBASE_ROOT_DIR"
+        su -l $HDFS_USER -c "hdfs dfs -chown -R ${HBASE_USER}:${HBASE_GROUP} $HBASE_ROOT_DIR"
+    fi
+
+    # 启动hbase集群
+    start
 }
 
 # 启动hbase集群

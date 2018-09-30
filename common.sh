@@ -58,7 +58,6 @@ function config_xml()
 {
     local xml_file="$1"
     local base_file=`basename $xml_file`
-    local prop_file=$CONF_DIR/${base_file/.xml/.cfg}
 
     # 删除默认配置
     sed -i '/<property>/,/<\/property>/d' $xml_file
@@ -69,7 +68,7 @@ function config_xml()
     sed -i 's/\(.\{1,\}\)\(<configuration>\).*/\1\n\2/' $xml_file
 
     # 键值对转xml
-    cat $prop_file | map2xml > ${base_file}.tmp
+    cat | map2xml > ${base_file}.tmp
 
     # 插入配置信息
     sed -i "/<configuration>/r ${base_file}.tmp" $xml_file
@@ -324,12 +323,6 @@ function install_scala()
     done
 }
 
-# 判断用户是否存在
-function exist_user()
-{
-    grep "^$1:" /etc/passwd
-}
-
 # 创建用户
 function create_user()
 {
@@ -337,15 +330,11 @@ function create_user()
         debug "Create user: $THE_USER, group: $THE_GROUP on host: $ip"
         if [[ "$ip" = "$LOCAL_IP" ]]; then
             groupadd -f $THE_GROUP
-            if [[ -z `exist_user $THE_USER` ]]; then
-                useradd $THE_USER -g $THE_GROUP
-            fi
+            grep "^$THE_USER:" /etc/passwd || useradd $THE_USER -g $THE_GROUP
             echo "$owner_passwd" | passwd --stdin $THE_USER
         else
             autossh "$admin_passwd" ${admin_user}@${ip} "groupadd -f $THE_GROUP"
-            if [[ -z `exist_user $THE_USER` ]]; then
-                autossh "$admin_passwd" ${admin_user}@${ip} "useradd $THE_USER -g $THE_GROUP"
-            fi
+            autossh "$admin_passwd" ${admin_user}@${ip} "grep \"^$THE_USER:\" /etc/passwd || useradd $THE_USER -g $THE_GROUP"
             autossh "$admin_passwd" ${admin_user}@${ip} "echo $owner_passwd | passwd --stdin $THE_USER"
         fi
     done
@@ -469,9 +458,13 @@ function config_ssh()
     echo "$HOSTS" | while read ip hostname admin_user admin_passwd owner_passwd others; do
         debug "Make known hosts record at host: $ip"
         echo "$HOSTS" | while read _ip _hostname _admin_user _admin_passwd _owner_passwd _others; do
+            debug "To host: $_hostname"
             autossh "$owner_passwd" ${THE_USER}@${ip} "ssh -o StrictHostKeyChecking=no ${THE_USER}@${_hostname} pwd"
         done
     done
+
+    # 出错不要立即退出
+    set +e
 }
 
 # 初始化集群

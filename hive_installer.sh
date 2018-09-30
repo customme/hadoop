@@ -20,11 +20,11 @@ source $DIR/common.sh
 
 # hive集群配置信息
 # ip hostname admin_user admin_passwd owner_passwd roles
-HOSTS="10.10.20.99 yygz-99.tjinserv.com root 7oGTb2P3nPQKHWw1ZG hive123 metastore,hiveserver2
-10.10.20.101 yygz-101.tjinserv.com root 7oGTb2P3nPQKHWw1ZG hive123 metastore,hiveserver2
-10.10.20.104 yygz-104.tjinserv.com root 7oGTb2P3nPQKHWw1ZG hive123 hive-client
-10.10.20.110 yygz-110.tjinserv.com root 7oGTb2P3nPQKHWw1ZG hive123 hive-client
-10.10.20.111 yygz-111.tjinserv.com root 7oGTb2P3nPQKHWw1ZG hive123 hive-client"
+HOSTS="10.10.10.61 yygz-61.gzserv.com root 123456 hive123 metastore,hiveserver2
+10.10.10.64 yygz-64.gzserv.com root 123456 hive123 metastore,hiveserver2
+10.10.10.65 yygz-65.gzserv.com root 123456 hive123 hive-client
+10.10.10.66 yygz-66.gzserv.com root 123456 hive123 hive-client
+10.10.10.67 yygz-67.gzserv.com root 123456 hive123 hive-client"
 # 测试环境
 if [[ "$LOCAL_IP" =~ 192.168 ]]; then
 HOSTS="192.168.1.178 hdpc1-mn01 root 123456 123456 metastore,hiveserver2
@@ -108,6 +108,50 @@ function set_env()
     done
 }
 
+# hive 配置
+function hive_config()
+{
+    # Server
+    echo "
+javax.jdo.option.ConnectionURL=jdbc:mysql://yygz-64.gzserv.com:3306/hive?createDatabaseIfNotExist=true
+javax.jdo.option.ConnectionDriverName=com.mysql.jdbc.Driver
+javax.jdo.option.ConnectionUserName=hive
+javax.jdo.option.ConnectionPassword=hive123
+hive.metastore.warehouse.dir=$HIVE_DB_DIR
+hive.support.concurrency=true
+"
+
+    # MetaStore HA
+    echo "
+hive.cluster.delegation.token.store.class=org.apache.hadoop.hive.thrift.ZooKeeperTokenStore
+"
+
+    local zookeepers=`echo "$HOSTS" | awk '$6 ~ /zookeeper/ {printf("%s,",$2)}' | sed 's/,$//'`
+
+    # HiveServer2 HA
+    echo "
+hive.server2.support.dynamic.service.discovery=true
+hive.server2.zookeeper.namespace=hiveserver2
+hive.zookeeper.quorum=$zookeepers
+hive.zookeeper.session.timeout=1200000
+"
+
+    # Client
+    echo "
+hive.exec.scratchdir=/hive/tmp
+hive.exec.local.scratchdir=$HIVE_TMP_DIR
+hive.querylog.location=$HIVE_LOG_DIR/query
+hive.server2.logging.operation.log.location=$HIVE_LOG_DIR/operation
+"
+
+    local metastores=`echo "$HOSTS" | awk '$6 ~ /metastore/ {printf("%s:%s,",$2,"'$HIVE_METASTORE_PORT'")}' | sed 's/,$//'`
+
+    # MetaStore HA
+    echo "
+hive.metastore.uris=thrift://$metastores
+"
+}
+
 # 配置hive
 function config_hive()
 {
@@ -176,24 +220,7 @@ function config_hive()
     if [[ ! -f $HIVE_NAME/conf/hive-site.xml ]]; then
         cp $HIVE_NAME/conf/hive-default.xml.template $HIVE_NAME/conf/hive-site.xml
     fi
-    config_xml $HIVE_NAME/conf/hive-site.xml
-
-    # 创建临时文件目录
-    su -l $HDFS_USER -c "hdfs dfs -mkdir -p /tmp"
-    su -l $HDFS_USER -c "hdfs dfs -chmod -R 777 /tmp"
-
-    # 创建hdfs hive数据存储目录
-    if [[ -n "$HIVE_DB_DIR" ]]; then
-        su -l $HDFS_USER -c "hdfs dfs -mkdir -p $HIVE_DB_DIR"
-        su -l $HDFS_USER -c "hdfs dfs -chown -R ${HIVE_USER}:${HIVE_GROUP} $HIVE_DB_DIR"
-        su -l $HDFS_USER -c "hdfs dfs -chmod -R g+w $HIVE_DB_DIR"
-    fi
-
-    if [[ -n "$YARN_STAG_DIR" ]]; then
-        su -l $HDFS_USER -c "hdfs dfs -mkdir -p $YARN_STAG_DIR/$HIVE_USER"
-        su -l $HDFS_USER -c "hdfs dfs -chown -R ${HIVE_USER}:${HIVE_GROUP} $YARN_STAG_DIR/$HIVE_USER"
-        su -l $HDFS_USER -c "hdfs dfs -chmod -R g+x $YARN_STAG_DIR"
-    fi
+    hive_config | config_xml $HIVE_NAME/conf/hive-site.xml
 
     # mysql驱动
     ls $LIB_DIR/mysql-connector-java-*.jar | xargs -r -I {} cp {} $HIVE_NAME/lib
@@ -279,6 +306,30 @@ function install()
 
     # 设置hive环境变量
     set_env
+}
+
+# 初始化
+function init()
+{
+    # 创建临时文件目录
+    su -l $HDFS_USER -c "hdfs dfs -mkdir -p /tmp"
+    su -l $HDFS_USER -c "hdfs dfs -chmod -R 777 /tmp"
+
+    # 创建hdfs hive数据存储目录
+    if [[ -n "$HIVE_DB_DIR" ]]; then
+        su -l $HDFS_USER -c "hdfs dfs -mkdir -p $HIVE_DB_DIR"
+        su -l $HDFS_USER -c "hdfs dfs -chown -R ${HIVE_USER}:${HIVE_GROUP} $HIVE_DB_DIR"
+        su -l $HDFS_USER -c "hdfs dfs -chmod -R g+w $HIVE_DB_DIR"
+    fi
+
+    if [[ -n "$YARN_STAG_DIR" ]]; then
+        su -l $HDFS_USER -c "hdfs dfs -mkdir -p $YARN_STAG_DIR/$HIVE_USER"
+        su -l $HDFS_USER -c "hdfs dfs -chown -R ${HIVE_USER}:${HIVE_GROUP} $YARN_STAG_DIR/$HIVE_USER"
+        su -l $HDFS_USER -c "hdfs dfs -chmod -R g+x $YARN_STAG_DIR"
+    fi
+
+    # 启动hive集群
+    start
 }
 
 # 启动hive集群

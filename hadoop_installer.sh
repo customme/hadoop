@@ -20,16 +20,11 @@ source $DIR/common.sh
 
 # hadoop集群配置信息
 # ip hostname admin_user admin_passwd owner_passwd roles
-HOSTS="10.10.10.111 yygz-111.gzserv.com root GVhZgnUr5kn7Mkcq hadoop namenode,zkfc,yarn,historyserver
-10.10.10.244 yygz-244.gzserv.com root GVhZgnUr5kn7Mkcq hadoop namenode,zkfc,httpfs,yarn
-10.10.10.13 yygz-13.gzserv.com root GVhZgnUr5kn7Mkcq hadoop datanode,journalnode,zookeeper
-10.10.10.145 yygz-145.gzserv.com root GVhZgnUr5kn7Mkcq hadoop datanode,journalnode,zookeeper
-10.10.10.147 yygz-147.gzserv.com root GVhZgnUr5kn7Mkcq hadoop datanode,journalnode,zookeeper
-10.10.10.28 yygz-28.gzserv.com root GVhZgnUr5kn7Mkcq hadoop namenode,zkfc,yarn,historyserver
-10.10.10.29 yygz-29.gzserv.com root GVhZgnUr5kn7Mkcq hadoop namenode,zkfc,httpfs,yarn
-10.10.10.30 yygz-30.gzserv.com root GVhZgnUr5kn7Mkcq hadoop datanode,journalnode,zookeeper
-10.10.10.31 yygz-31.gzserv.com root GVhZgnUr5kn7Mkcq hadoop datanode,journalnode,zookeeper
-10.10.10.32 yygz-32.gzserv.com root GVhZgnUr5kn7Mkcq hadoop datanode,journalnode,zookeeper"
+HOSTS="10.10.10.61 yygz-61.gzserv.com root 123456 hadoop123 namenode,zkfc,yarn,historyserver
+10.10.10.64 yygz-64.gzserv.com root 123456 hadoop123 namenode,zkfc,httpfs,yarn
+10.10.10.65 yygz-65.gzserv.com root 123456 hadoop123 datanode,journalnode,zookeeper
+10.10.10.66 yygz-66.gzserv.com root 123456 hadoop123 datanode,journalnode,zookeeper
+10.10.10.67 yygz-67.gzserv.com root 123456 hadoop123 datanode,journalnode,zookeeper"
 # 测试环境
 if [[ "$LOCAL_IP" =~ 192.168 ]]; then
 HOSTS="192.168.1.178 hdpc1-mn01 root 123456 123456 namenode,zkfc,yarn,historyserver
@@ -118,6 +113,159 @@ function set_env()
             autossh "$admin_passwd" ${admin_user}@${ip} "sed -i '$ a # hadoop config end' /etc/profile"
         fi
     done
+}
+
+# core 配置
+function core_config()
+{
+    # Basic
+    echo "
+fs.defaultFS=hdfs://$NAMESERVICE_ID
+hadoop.tmp.dir=$HADOOP_TMP_DIR
+fs.trash.interval=4320
+fs.trash.checkpoint.interval=60
+"
+
+    # HTTPFS
+    echo "
+hadoop.proxyuser.hdfs.hosts=*
+hadoop.proxyuser.hdfs.groups=*
+"
+
+    # Tuning
+    echo "
+io.file.buffer.size=4096
+ipc.server.listen.queue.size=128
+"
+}
+
+# hdfs 配置
+function hdfs_config()
+{
+    # Basic
+    echo "
+dfs.namenode.name.dir=file://$DFS_NAME_DIR
+dfs.datanode.data.dir=file://$DFS_DATA_DIR
+dfs.replication=2
+dfs.datanode.du.reserved=1073741824
+dfs.blockreport.intervalMsec=600000
+dfs.datanode.directoryscan.interval=600
+dfs.namenode.datanode.registration.ip-hostname-check=false
+dfs.hosts.exclude=$HADOOP_CONF_DIR/excludes
+"
+
+    local namenodes=(`echo "$HOSTS" | awk '$6 ~ /namenode/ {printf("%s ",$2)}'`)
+    local journalnodes=`echo "$HOSTS" | awk '$6 ~ /journalnode/ {printf("%s:%s,",$2,"'$QJM_SERVER_PORT'")}' | sed 's/,$//'`
+
+    # NameNode HA
+    echo "
+dfs.nameservices=$NAMESERVICE_ID
+dfs.ha.namenodes.$NAMESERVICE_ID=$NAMESERVICE_ID1,$NAMESERVICE_ID2
+dfs.namenode.rpc-address.$NAMESERVICE_ID.NAMESERVICE_ID1=${namenodes[0]}:$NAMENODE_RPC_PORT
+dfs.namenode.rpc-address.$NAMESERVICE_ID.NAMESERVICE_ID2=${namenodes[1]}:$NAMENODE_RPC_PORT
+dfs.namenode.http-address.$NAMESERVICE_ID.NAMESERVICE_ID1=${namenodes[0]}:$NAMENODE_HTTP_PORT
+dfs.namenode.http-address.$NAMESERVICE_ID.NAMESERVICE_ID2=${namenodes[1]}:$NAMENODE_HTTP_PORT
+dfs.namenode.shared.edits.dir=qjournal:/$journalnodes/$NAMESERVICE_ID
+dfs.client.failover.proxy.provider.$NAMESERVICE_ID=org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider
+dfs.ha.fencing.methods=sshfence
+dfs.ha.fencing.ssh.private-key-files=/home/$HDFS_USER/.ssh/id_rsa
+dfs.ha.fencing.ssh.connect-timeout=30000
+dfs.journalnode.edits.dir=$HADOOP_DATA_DIR/journal
+dfs.ha.automatic-failover.enabled=true
+ha.zookeeper.session-timeout.ms=10000
+"
+
+    # Tuning
+    echo "
+dfs.blocksize=64m
+dfs.namenode.handler.count=10
+dfs.datanode.handler.count=10
+dfs.datanode.max.transfer.threads=4096
+dfs.datanode.balance.bandwidthPerSec=10485760
+dfs.namenode.replication.work.multiplier.per.iteration=4
+dfs.namenode.replication.max-streams=10
+dfs.namenode.replication.max-streams-hard-limit=20
+"
+}
+
+# mapred 配置
+function mapred_config()
+{
+    local historyserver=`echo "$HOSTS" | awk '$6 ~ /historyserver/ {print $2}'`
+
+    # Basic
+    echo "
+mapreduce.framework.name=yarn
+mapreduce.jobhistory.address=$historyserver:$JOBHISTORY_SERVER_PORT
+mapreduce.jobhistory.webapp.address=$historyserver:$JOBHISTORY_WEB_PORT
+mapreduce.jobhistory.admin.address=$historyserver:$JOBHISTORY_ADMIN_PORT
+yarn.app.mapreduce.am.staging-dir=/tmp
+"
+
+    # Tuning
+    echo "
+mapreduce.map.memory.mb=512
+mapreduce.map.java.opts=-Xmx410m
+mapreduce.reduce.memory.mb=512
+mapreduce.reduce.java.opts=-Xmx410m
+yarn.app.mapreduce.am.resource.mb=512
+yarn.app.mapreduce.am.command-opts=-Xmx410m
+mapreduce.task.io.sort.mb=100
+mapreduce.jobtracker.handler.count=10
+mapreduce.tasktracker.http.threads=40
+mapreduce.tasktracker.map.tasks.maximum=2
+mapreduce.tasktracker.reduce.tasks.maximum=2
+"
+}
+
+# yarn 配置
+function yarn_config()
+{
+    # Basic
+    echo "
+yarn.nodemanager.log-dirs=$HADOOP_LOG_DIR/yarn
+yarn.nodemanager.remote-app-log-dir=/log/yarn
+yarn.nodemanager.aux-services=mapreduce_shuffle
+yarn.log-aggregation-enable=true
+yarn.log-aggregation.retain-seconds=2592000
+yarn.nodemanager.vmem-check-enabled=false
+"
+
+    local resourcemanagers=(`echo "$HOSTS" | awk '$6 ~ /yarn/ {printf("%s ",$2)}'`)
+    local zookeepers=`echo "$HOSTS" | awk '$6 ~ /zookeeper/ {printf("%s:%s,",$2,"'$ZK_SERVER_PORT'")}' | sed 's/,$//'`
+
+    # ResourceManager HA
+    echo "
+yarn.resourcemanager.ha.enabled=true
+yarn.resourcemanager.cluster-id=$YARN_CLUSTER_ID
+yarn.resourcemanager.ha.rm-ids=$YARN_RM_ID1,$YARN_RM_ID2
+yarn.resourcemanager.hostname.$YARN_RM_ID1=${resourcemanagers[0]}
+yarn.resourcemanager.hostname.$YARN_RM_ID2=${resourcemanagers[1]}
+yarn.resourcemanager.webapp.address.$YARN_RM_ID1=${resourcemanagers[0]}:$YARN_WEB_PORT
+yarn.resourcemanager.webapp.address.$YARN_RM_ID2=${resourcemanagers[1]}:$YARN_WEB_PORT
+yarn.resourcemanager.recovery.enabled=true
+yarn.resourcemanager.store.class=org.apache.hadoop.yarn.server.resourcemanager.recovery.ZKRMStateStore
+yarn.resourcemanager.zk-address=$zookeepers
+"
+
+    # Tuning
+    echo "
+yarn.nodemanager.resource.memory-mb=2048
+yarn.nodemanager.resource.cpu-vcores=2
+yarn.scheduler.minimum-allocation-mb=256
+yarn.scheduler.maximum-allocation-mb=2048
+yarn.scheduler.maximum-allocation-vcores=2
+"
+}
+
+# httpfs 配置
+function httpfs_config()
+{
+    # Hue HttpFS
+    echo "
+httpfs.proxyuser.hue.hosts=*
+httpfs.proxyuser.hue.groups=*
+"
 }
 
 # 配置hadoop
@@ -216,22 +364,22 @@ function config_hadoop()
     # 删除连续空行为一个
     sed -i '/^$/{N;/^\n$/d}' $HADOOP_NAME/etc/hadoop/mapred-env.sh
 
-    # 读取core-site.cfg文件配置core-site.xml
-    config_xml $HADOOP_NAME/etc/hadoop/core-site.xml
+    # 配置core-site.xml
+    core_config | config_xml $HADOOP_NAME/etc/hadoop/core-site.xml
 
-    # 读取hdfs-site.cfg文件配置hdfs-site.xml
-    config_xml $HADOOP_NAME/etc/hadoop/hdfs-site.xml
+    # 配置hdfs-site.xml
+    hdfs_config | config_xml $HADOOP_NAME/etc/hadoop/hdfs-site.xml
 
-    # 读取mapred-site.cfg文件配置mapred-site.xml
+    # 配置mapred-site.xml
     if [[ ! -f $HADOOP_NAME/etc/hadoop/mapred-site.xml ]]; then
         cp $HADOOP_NAME/etc/hadoop/mapred-site.xml.template $HADOOP_NAME/etc/hadoop/mapred-site.xml
     fi
-    config_xml $HADOOP_NAME/etc/hadoop/mapred-site.xml
+    mapred_config | config_xml $HADOOP_NAME/etc/hadoop/mapred-site.xml
 
-    # 读取yarn-site.cfg文件配置yarn-site.xml
-    config_xml $HADOOP_NAME/etc/hadoop/yarn-site.xml
+    # 配置yarn-site.xml
+    yarn_config | config_xml $HADOOP_NAME/etc/hadoop/yarn-site.xml
 
-    # 读取httpfs-site.cfg文件配置httpfs-site.xml
+    # 配置httpfs-site.xml
     if [[ -f $CONF_DIR/httpfs-site.cfg ]]; then
         sed -i "s@.*\(export HTTPFS_LOG=\).*@\1${HTTPFS_LOG_DIR}@" $HADOOP_NAME/etc/hadoop/httpfs-env.sh
         sed -i "s@.*\(export HTTPFS_TEMP=\).*@\1${HTTPFS_TMP_DIR}@" $HADOOP_NAME/etc/hadoop/httpfs-env.sh
@@ -240,7 +388,7 @@ function config_hadoop()
         # 删除连续空行
         sed -i '/^$/{N;/^\n$/d}' $HADOOP_NAME/etc/hadoop/httpfs-env.sh
 
-        config_xml $HADOOP_NAME/etc/hadoop/httpfs-site.xml
+        httpfs_config | config_xml $HADOOP_NAME/etc/hadoop/httpfs-site.xml
     fi
 
     # 修改slaves文件
@@ -758,7 +906,7 @@ function main()
     if [[ $zk_flag ]]; then
         options=${create_flag/1/-c $create_cmd }-i${start_flag/1/ -s $start_cmd}${debug_flag/1/ -v}
         log "Install zookeeper: $DIR/zk_installer.sh $options"
-        $DIR/zk_installer.sh $options
+        sh $DIR/zk_installer.sh $options
         log "Install zookeeper done"
     fi
 
@@ -775,7 +923,7 @@ function main()
     if [[ $hbase_flag ]]; then
         options=${create_flag/1/-c $create_cmd }-i${ssh_flag/1/ -k}${start_flag/1/ -s $start_cmd}${debug_flag/1/ -v}
         log "Install hbase: $DIR/hbase_installer.sh $options"
-        $DIR/hbase_installer.sh $options
+        sh $DIR/hbase_installer.sh $options
         log "Install hbase done"
     fi
 
@@ -783,7 +931,7 @@ function main()
     if [[ $hive_flag ]]; then
         options=${create_flag/1/-c $create_cmd }-i${start_flag/1/ -s $start_cmd}${debug_flag/1/ -v}
         log "Install hive: $DIR/hive_installer.sh $options"
-        $DIR/hive_installer.sh $options
+        sh $DIR/hive_installer.sh $options
         log "Install hive done"
     fi
 
@@ -791,7 +939,7 @@ function main()
     if [[ $spark_flag ]]; then
         options=${create_flag/1/-c $create_cmd }-i${ssh_flag/1/ -k}${start_flag/1/ -s $start_cmd}${debug_flag/1/ -v}
         log "Install spark: $DIR/spark_installer.sh $options"
-        $DIR/spark_installer.sh $options
+        sh $DIR/spark_installer.sh $options
         log "Install spark done"
     fi
 }
