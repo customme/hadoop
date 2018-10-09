@@ -18,27 +18,19 @@ source ~/.bash_profile
 source $DIR/common.sh
 
 
-# storm镜像
-STORM_MIRROR=http://mirror.bit.edu.cn/apache/storm
-STORM_NAME=apache-storm-$STORM_VERSION
 # storm安装包名
+STORM_NAME=apache-storm-$STORM_VERSION
 STORM_PKG=${STORM_NAME}.tar.gz
 # storm安装包下载地址
-STORM_URL=$STORM_MIRROR/$STORM_NAME/$STORM_PKG
+STORM_URL=http://mirror.bit.edu.cn/apache/storm/$STORM_NAME/$STORM_PKG
 
 # storm集群配置信息
 # ip hostname admin_user admin_passwd owner_passwd roles
-HOSTS="10.10.20.99 yygz-99.tjinserv.com root 7oGTb2P3nPQKHWw1ZG storm123 nimbus
-10.10.20.101 yygz-101.tjinserv.com root 7oGTb2P3nPQKHWw1ZG storm123 nimbus
-10.10.20.104 yygz-104.tjinserv.com root 7oGTb2P3nPQKHWw1ZG storm123 supervisor
-10.10.20.110 yygz-110.tjinserv.com root 7oGTb2P3nPQKHWw1ZG storm123 supervisor
-10.10.20.111 yygz-111.tjinserv.com root 7oGTb2P3nPQKHWw1ZG storm123 supervisor"
-# 测试环境
-if [[ "$LOCAL_IP" =~ 192.168 ]]; then
-HOSTS="192.168.1.227 hdpc1-dn001 root 123456 123456 nimbus,supervisor
-192.168.1.229 hdpc1-dn002 root 123456 123456 nimbus,supervisor
-192.168.1.230 hdpc1-dn003 root 123456 123456 supervisor"
-fi
+HOSTS="10.10.10.61 yygz-61.gzserv.com root 123456 storm123 nimbus
+10.10.10.64 yygz-64.gzserv.com root 123456 storm123 nimbus
+10.10.10.65 yygz-65.gzserv.com root 123456 storm123 supervisor
+10.10.10.66 yygz-66.gzserv.com root 123456 storm123 supervisor
+10.10.10.67 yygz-67.gzserv.com root 123456 storm123 supervisor"
 
 # 当前用户名，所属组
 THE_USER=$STORM_USER

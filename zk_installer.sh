@@ -23,27 +23,16 @@ source $DIR/common.sh
 HOSTS="10.10.10.65 yygz-65.gzserv.com root 123456 zookeeper123 1
 10.10.10.66 yygz-66.gzserv.com root 123456 zookeeper123 2
 10.10.10.67 yygz-67.gzserv.com root 123456 zookeeper123 3"
-# 测试环境
-if [[ "$LOCAL_IP" =~ 192.168 ]]; then
-HOSTS="192.168.1.227 hdpc1-sn001 root 123456 123456 1
-192.168.1.229 hdpc1-sn002 root 123456 123456 2
-192.168.1.230 hdpc1-sn003 root 123456 123456 3"
-fi
 
-# zookeeper镜像
-ZK_MIRROR=http://mirror.bit.edu.cn/apache/zookeeper
-ZK_NAME=zookeeper-$ZK_VERSION
 # zookeeper安装包名
+ZK_NAME=zookeeper-$ZK_VERSION
 ZK_PKG=${ZK_NAME}.tar.gz
 # zookeeper安装包下载地址
-ZK_URL=$ZK_MIRROR/$ZK_NAME/$ZK_PKG
+ZK_URL=http://mirror.bit.edu.cn/apache/zookeeper/$ZK_NAME/$ZK_PKG
 
 # 当前用户名，所属组
 THE_USER=$ZK_USER
 THE_GROUP=$ZK_GROUP
-
-# 用户zookeeper配置文件目录
-CONF_DIR=$CONF_DIR/zookeeper
 
 
 # 创建zookeeper相关目录

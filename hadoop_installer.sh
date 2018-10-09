@@ -25,22 +25,12 @@ HOSTS="10.10.10.61 yygz-61.gzserv.com root 123456 hadoop123 namenode,zkfc,yarn,h
 10.10.10.65 yygz-65.gzserv.com root 123456 hadoop123 datanode,journalnode,zookeeper
 10.10.10.66 yygz-66.gzserv.com root 123456 hadoop123 datanode,journalnode,zookeeper
 10.10.10.67 yygz-67.gzserv.com root 123456 hadoop123 datanode,journalnode,zookeeper"
-# 测试环境
-if [[ "$LOCAL_IP" =~ 192.168 ]]; then
-HOSTS="192.168.1.178 hdpc1-mn01 root 123456 123456 namenode,zkfc,yarn,historyserver
-192.168.1.179 hdpc1-mn02 root 123456 123456 namenode,zkfc,httpfs,yarn
-192.168.1.227 hdpc1-sn001 root 123456 123456 datanode,journalnode,zookeeper
-192.168.1.229 hdpc1-sn002 root 123456 123456 datanode,journalnode,zookeeper
-192.168.1.230 hdpc1-sn003 root 123456 123456 datanode,journalnode,zookeeper"
-fi
 
-# hadoop镜像
-HADOOP_MIRROR=http://mirror.bit.edu.cn/apache/hadoop/common
-HADOOP_NAME=hadoop-$HADOOP_VERSION
 # hadoop安装包名
+HADOOP_NAME=hadoop-$HADOOP_VERSION
 HADOOP_PKG=${HADOOP_NAME}.tar.gz
 # hadoop安装包下载地址
-HADOOP_URL=$HADOOP_MIRROR/$HADOOP_NAME/$HADOOP_PKG
+HADOOP_URL=http://mirror.bit.edu.cn/apache/hadoop/common/$HADOOP_NAME/$HADOOP_PKG
 
 # 相关目录
 HADOOP_PID_DIR=$HADOOP_TMP_DIR
@@ -57,9 +47,6 @@ DFS_EXCLUDE_FILE=excludes
 # 当前用户名，所属组
 THE_USER=$HDFS_USER
 THE_GROUP=$HDFS_GROUP
-
-# 用户hadoop配置文件目录
-CONF_DIR=$CONF_DIR/hadoop
 
 
 # 创建hadoop相关目录
@@ -126,6 +113,13 @@ fs.trash.interval=4320
 fs.trash.checkpoint.interval=60
 "
 
+    local zookeepers=`echo "$HOSTS" | awk '$6 ~ /zookeeper/ {printf("%s:%s,",$2,"'$ZK_SERVER_PORT'")}' | sed 's/,$//'`
+
+    # HA
+    echo "
+ha.zookeeper.quorum=$zookeepers
+"
+
     # HTTPFS
     echo "
 hadoop.proxyuser.hdfs.hosts=*
@@ -155,17 +149,17 @@ dfs.hosts.exclude=$HADOOP_CONF_DIR/excludes
 "
 
     local namenodes=(`echo "$HOSTS" | awk '$6 ~ /namenode/ {printf("%s ",$2)}'`)
-    local journalnodes=`echo "$HOSTS" | awk '$6 ~ /journalnode/ {printf("%s:%s,",$2,"'$QJM_SERVER_PORT'")}' | sed 's/,$//'`
+    local journalnodes=`echo "$HOSTS" | awk '$6 ~ /journalnode/ {printf("%s:%s;",$2,"'$QJM_SERVER_PORT'")}' | sed 's/;$//'`
 
     # NameNode HA
     echo "
 dfs.nameservices=$NAMESERVICE_ID
 dfs.ha.namenodes.$NAMESERVICE_ID=$NAMESERVICE_ID1,$NAMESERVICE_ID2
-dfs.namenode.rpc-address.$NAMESERVICE_ID.NAMESERVICE_ID1=${namenodes[0]}:$NAMENODE_RPC_PORT
-dfs.namenode.rpc-address.$NAMESERVICE_ID.NAMESERVICE_ID2=${namenodes[1]}:$NAMENODE_RPC_PORT
-dfs.namenode.http-address.$NAMESERVICE_ID.NAMESERVICE_ID1=${namenodes[0]}:$NAMENODE_HTTP_PORT
-dfs.namenode.http-address.$NAMESERVICE_ID.NAMESERVICE_ID2=${namenodes[1]}:$NAMENODE_HTTP_PORT
-dfs.namenode.shared.edits.dir=qjournal:/$journalnodes/$NAMESERVICE_ID
+dfs.namenode.rpc-address.$NAMESERVICE_ID.$NAMESERVICE_ID1=${namenodes[0]}:$NAMENODE_RPC_PORT
+dfs.namenode.rpc-address.$NAMESERVICE_ID.$NAMESERVICE_ID2=${namenodes[1]}:$NAMENODE_RPC_PORT
+dfs.namenode.http-address.$NAMESERVICE_ID.$NAMESERVICE_ID1=${namenodes[0]}:$NAMENODE_HTTP_PORT
+dfs.namenode.http-address.$NAMESERVICE_ID.$NAMESERVICE_ID2=${namenodes[1]}:$NAMENODE_HTTP_PORT
+dfs.namenode.shared.edits.dir=qjournal://$journalnodes/$NAMESERVICE_ID
 dfs.client.failover.proxy.provider.$NAMESERVICE_ID=org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider
 dfs.ha.fencing.methods=sshfence
 dfs.ha.fencing.ssh.private-key-files=/home/$HDFS_USER/.ssh/id_rsa
@@ -361,8 +355,17 @@ function config_hadoop()
         sed -i "$ a \\\nexport HADOOP_MAPRED_PID_DIR=${HADOOP_MAPRED_PID_DIR}" $HADOOP_NAME/etc/hadoop/mapred-env.sh
     fi
 
+    # 修改httpfs-env.sh
+    sed -i "s@.*\(export HTTPFS_LOG=\).*@\1${HTTPFS_LOG_DIR}@" $HADOOP_NAME/etc/hadoop/httpfs-env.sh
+    sed -i "s@.*\(export HTTPFS_TEMP=\).*@\1${HTTPFS_TMP_DIR}@" $HADOOP_NAME/etc/hadoop/httpfs-env.sh
+    sed -i "$ a \\\nexport CATALINA_PID=${HADOOP_TMP_DIR}/httpfs.pid" $HADOOP_NAME/etc/hadoop/httpfs-env.sh
+
+    # 修改httpfs.sh
+    sed -i '/httpfs-config/a\source \$HADOOP_CONF_DIR/httpfs-env.sh' $HADOOP_NAME/sbin/httpfs.sh
+
     # 删除连续空行为一个
     sed -i '/^$/{N;/^\n$/d}' $HADOOP_NAME/etc/hadoop/mapred-env.sh
+    sed -i '/^$/{N;/^\n$/d}' $HADOOP_NAME/etc/hadoop/httpfs-env.sh
 
     # 配置core-site.xml
     core_config | config_xml $HADOOP_NAME/etc/hadoop/core-site.xml
@@ -371,47 +374,23 @@ function config_hadoop()
     hdfs_config | config_xml $HADOOP_NAME/etc/hadoop/hdfs-site.xml
 
     # 配置mapred-site.xml
-    if [[ ! -f $HADOOP_NAME/etc/hadoop/mapred-site.xml ]]; then
-        cp $HADOOP_NAME/etc/hadoop/mapred-site.xml.template $HADOOP_NAME/etc/hadoop/mapred-site.xml
-    fi
+    cp -n $HADOOP_NAME/etc/hadoop/mapred-site.xml.template $HADOOP_NAME/etc/hadoop/mapred-site.xml
     mapred_config | config_xml $HADOOP_NAME/etc/hadoop/mapred-site.xml
 
     # 配置yarn-site.xml
     yarn_config | config_xml $HADOOP_NAME/etc/hadoop/yarn-site.xml
 
     # 配置httpfs-site.xml
-    if [[ -f $CONF_DIR/httpfs-site.cfg ]]; then
-        sed -i "s@.*\(export HTTPFS_LOG=\).*@\1${HTTPFS_LOG_DIR}@" $HADOOP_NAME/etc/hadoop/httpfs-env.sh
-        sed -i "s@.*\(export HTTPFS_TEMP=\).*@\1${HTTPFS_TMP_DIR}@" $HADOOP_NAME/etc/hadoop/httpfs-env.sh
-        sed -i "$ a \\\nexport CATALINA_PID=${HADOOP_TMP_DIR}/httpfs.pid" $HADOOP_NAME/etc/hadoop/httpfs-env.sh
-
-        # 删除连续空行
-        sed -i '/^$/{N;/^\n$/d}' $HADOOP_NAME/etc/hadoop/httpfs-env.sh
-
-        httpfs_config | config_xml $HADOOP_NAME/etc/hadoop/httpfs-site.xml
-    fi
+    httpfs_config | config_xml $HADOOP_NAME/etc/hadoop/httpfs-site.xml
 
     # 修改slaves文件
     echo "$HOSTS" | awk '$0 ~ /datanode/ {print $2}' > $HADOOP_NAME/etc/hadoop/slaves
 
     # exclude hosts
-    if [[ ! -f $HADOOP_NAME/etc/hadoop/$DFS_EXCLUDE_FILE ]]; then
-        touch $HADOOP_NAME/etc/hadoop/$DFS_EXCLUDE_FILE
-    fi
-
-    # hadoop本地库
-    hadoop_native_lib=`find $LIB_DIR -name "hadoop-native-64-*.tar" | head -n 1`
-    if [[ -n "$hadoop_native_lib" ]]; then
-        tar -xf $hadoop_native_lib -C $HADOOP_NAME/lib/native
-    fi
+    touch $HADOOP_NAME/etc/hadoop/$DFS_EXCLUDE_FILE
 
     # hadoop监控
-    if [[ -f $CONF_DIR/hadoop-metrics.properties ]]; then
-        cp -f $CONF_DIR/hadoop-metrics.properties $HADOOP_NAME/etc/hadoop
-    fi
-    if [[ -f $CONF_DIR/hadoop-metrics2.properties ]]; then
-        cp -f $CONF_DIR/hadoop-metrics2.properties $HADOOP_NAME/etc/hadoop
-    fi
+    find $DIR -maxdepth 1 -type f -name "hadoop-metrics2.properties" | xargs -r -I {} cp {} $HADOOP_NAME/etc/hadoop
 }
 
 # 安装

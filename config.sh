@@ -15,16 +15,14 @@ fi
 # 系统版本号
 SYS_VERSION=`sed 's/.* release \([0-9]\.[0-9]\).*/\1/' /etc/redhat-release`
 
+# 系统内存大小
+SYS_MEMORY=`free -g | awk '$1 ~ /Mem/ {print $2}'`
+
 # 时间服务器
 TIME_SERVER=1.asia.pool.ntp.org
 
 # ssh端口
 SSH_PORT=22
-
-# 用户配置文件目录
-CONF_DIR=conf
-# 用户库文件目录
-LIB_DIR=lib
 
 # 集群配置信息
 # ip hostname admin_user admin_passwd roles

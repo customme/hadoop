@@ -22,35 +22,19 @@ source $DIR/common.sh
 # ip hostname admin_user admin_passwd owner_passwd roles
 HOSTS="10.10.10.61 yygz-61.gzserv.com root 123456 hive123 metastore,hiveserver2
 10.10.10.64 yygz-64.gzserv.com root 123456 hive123 metastore,hiveserver2
-10.10.10.65 yygz-65.gzserv.com root 123456 hive123 hive-client
-10.10.10.66 yygz-66.gzserv.com root 123456 hive123 hive-client
-10.10.10.67 yygz-67.gzserv.com root 123456 hive123 hive-client"
-# 测试环境
-if [[ "$LOCAL_IP" =~ 192.168 ]]; then
-HOSTS="192.168.1.178 hdpc1-mn01 root 123456 123456 metastore,hiveserver2
-192.168.1.179 hdpc1-mn02 root 123456 123456 metastore,hiveserver2
-192.168.1.227 hdpc1-sn001 root 123456 123456 hive-client
-192.168.1.229 hdpc1-sn002 root 123456 123456 hive-client
-192.168.1.230 hdpc1-sn003 root 123456 123456 hive-client"
-fi
+10.10.10.65 yygz-65.gzserv.com root 123456 hive123 hive-client,zookeeper
+10.10.10.66 yygz-66.gzserv.com root 123456 hive123 hive-client,zookeeper
+10.10.10.67 yygz-67.gzserv.com root 123456 hive123 hive-client,zookeeper"
 
-# hive镜像
-HIVE_MIRROR=http://mirror.bit.edu.cn/apache/hive
-HIVE_NAME=apache-hive-${HIVE_VERSION}-bin
 # hive安装包名
+HIVE_NAME=apache-hive-${HIVE_VERSION}-bin
 HIVE_PKG=${HIVE_NAME}.tar.gz
 # hive安装包下载地址
-HIVE_URL=$HIVE_MIRROR/hive-$HIVE_VERSION/$HIVE_PKG
+HIVE_URL=http://mirror.bit.edu.cn/apache/hive/hive-$HIVE_VERSION/$HIVE_PKG
 
 # 当前用户名，所属组
 THE_USER=$HIVE_USER
 THE_GROUP=$HIVE_GROUP
-
-# hive日志文件名
-HIVE_LOG_FILE=hive.log
-
-# 用户hive配置文件目录
-CONF_DIR=$CONF_DIR/hive
 
 
 # 创建hive相关目录
@@ -159,48 +143,35 @@ function config_hive()
     cp $HIVE_NAME/conf/hive-env.sh.template $HIVE_NAME/conf/hive-env.sh
 
     # jvm heap
-    sed -i "$ a if [[ \"\$SERVICE\" = \"cli\" || \"\$SERVICE\" = \"beeline\" ]]; then" $HIVE_NAME/conf/hive-env.sh
-    sed -i "$ a   if [ -z \"\$DEBUG\" ]; then" $HIVE_NAME/conf/hive-env.sh
-    sed -i '$s/^/  /' $HIVE_NAME/conf/hive-env.sh
-    sed -i "$ a     export HADOOP_OPTS=\"\$HADOOP_OPTS ${HIVE_CLIENT_HEAP} -XX:NewRatio=12 -XX:MaxHeapFreeRatio=40 -XX:MinHeapFreeRatio=15 -XX:+UseParNewGC -XX:-UseGCOverheadLimit\"" $HIVE_NAME/conf/hive-env.sh
-    sed -i '$s/^/    /' $HIVE_NAME/conf/hive-env.sh
-    sed -i "$ a   else" $HIVE_NAME/conf/hive-env.sh
-    sed -i '$s/^/  /' $HIVE_NAME/conf/hive-env.sh
-    sed -i "$ a     export HADOOP_OPTS=\"\$HADOOP_OPTS ${HIVE_CLIENT_HEAP} -XX:NewRatio=12 -XX:MaxHeapFreeRatio=40 -XX:MinHeapFreeRatio=15 -XX:-UseGCOverheadLimit\"" $HIVE_NAME/conf/hive-env.sh
-    sed -i '$s/^/    /' $HIVE_NAME/conf/hive-env.sh
-    sed -i "$ a   fi" $HIVE_NAME/conf/hive-env.sh
-    sed -i '$s/^/  /' $HIVE_NAME/conf/hive-env.sh
-    sed -i "$ a elif [ \"\$SERVICE\" = \"metastore\" ]; then" $HIVE_NAME/conf/hive-env.sh
-    sed -i "$ a   if [ -z \"\$DEBUG\" ]; then" $HIVE_NAME/conf/hive-env.sh
-    sed -i '$s/^/  /' $HIVE_NAME/conf/hive-env.sh
-    sed -i "$ a     export HADOOP_OPTS=\"\$HADOOP_OPTS ${HIVE_METASTORE_HEAP} -XX:NewRatio=12 -XX:MaxHeapFreeRatio=40 -XX:MinHeapFreeRatio=15 -XX:+UseParNewGC -XX:-UseGCOverheadLimit\"" $HIVE_NAME/conf/hive-env.sh
-    sed -i '$s/^/    /' $HIVE_NAME/conf/hive-env.sh
-    sed -i "$ a   else" $HIVE_NAME/conf/hive-env.sh
-    sed -i '$s/^/  /' $HIVE_NAME/conf/hive-env.sh
-    sed -i "$ a     export HADOOP_OPTS=\"\$HADOOP_OPTS ${HIVE_METASTORE_HEAP} -XX:NewRatio=12 -XX:MaxHeapFreeRatio=40 -XX:MinHeapFreeRatio=15 -XX:-UseGCOverheadLimit\"" $HIVE_NAME/conf/hive-env.sh
-    sed -i '$s/^/    /' $HIVE_NAME/conf/hive-env.sh
-    sed -i "$ a   fi" $HIVE_NAME/conf/hive-env.sh
-    sed -i '$s/^/  /' $HIVE_NAME/conf/hive-env.sh
-    sed -i "$ a elif [ \"\$SERVICE\" = \"hiveserver2\" ]; then" $HIVE_NAME/conf/hive-env.sh
-    sed -i "$ a   if [ -z \"\$DEBUG\" ]; then" $HIVE_NAME/conf/hive-env.sh
-    sed -i '$s/^/  /' $HIVE_NAME/conf/hive-env.sh
-    sed -i "$ a     export HADOOP_OPTS=\"\$HADOOP_OPTS ${HIVE_SERVER2_HEAP} -XX:NewRatio=12 -XX:MaxHeapFreeRatio=40 -XX:MinHeapFreeRatio=15 -XX:+UseParNewGC -XX:-UseGCOverheadLimit\"" $HIVE_NAME/conf/hive-env.sh
-    sed -i '$s/^/    /' $HIVE_NAME/conf/hive-env.sh
-    sed -i "$ a   else" $HIVE_NAME/conf/hive-env.sh
-    sed -i '$s/^/  /' $HIVE_NAME/conf/hive-env.sh
-    sed -i "$ a     export HADOOP_OPTS=\"\$HADOOP_OPTS ${HIVE_SERVER2_HEAP} -XX:NewRatio=12 -XX:MaxHeapFreeRatio=40 -XX:MinHeapFreeRatio=15 -XX:-UseGCOverheadLimit\"" $HIVE_NAME/conf/hive-env.sh
-    sed -i '$s/^/    /' $HIVE_NAME/conf/hive-env.sh
-    sed -i "$ a   fi" $HIVE_NAME/conf/hive-env.sh
-    sed -i '$s/^/  /' $HIVE_NAME/conf/hive-env.sh
-    sed -i "$ a fi" $HIVE_NAME/conf/hive-env.sh
+    echo "
+if [[ \"\$SERVICE\" = \"cli\" || \"\$SERVICE\" = \"beeline\" ]]; then
+  if [ -z \"\$DEBUG\" ]; then
+    export HADOOP_OPTS=\"\$HADOOP_OPTS -Xms32m -Xmx2g -XX:NewRatio=12 -XX:MaxHeapFreeRatio=40 -XX:MinHeapFreeRatio=15 -XX:+UseParNewGC -XX:-UseGCOverheadLimit\"
+  else
+    export HADOOP_OPTS=\"\$HADOOP_OPTS -Xms32m -Xmx2g -XX:NewRatio=12 -XX:MaxHeapFreeRatio=40 -XX:MinHeapFreeRatio=15 -XX:-UseGCOverheadLimit\"
+  fi
+elif [ \"\$SERVICE\" = \"metastore\" ]; then
+  if [ -z \"\$DEBUG\" ]; then
+    export HADOOP_OPTS=\"\$HADOOP_OPTS -Xmx8g -XX:NewRatio=12 -XX:MaxHeapFreeRatio=40 -XX:MinHeapFreeRatio=15 -XX:+UseParNewGC -XX:-UseGCOverheadLimit\"
+  else
+    export HADOOP_OPTS=\"\$HADOOP_OPTS -Xmx8g -XX:NewRatio=12 -XX:MaxHeapFreeRatio=40 -XX:MinHeapFreeRatio=15 -XX:-UseGCOverheadLimit\"
+  fi
+elif [ \"\$SERVICE\" = \"hiveserver2\" ]; then
+  if [ -z \"\$DEBUG\" ]; then
+    export HADOOP_OPTS=\"\$HADOOP_OPTS -Xmx4g -XX:NewRatio=12 -XX:MaxHeapFreeRatio=40 -XX:MinHeapFreeRatio=15 -XX:+UseParNewGC -XX:-UseGCOverheadLimit\"
+  else
+    export HADOOP_OPTS=\"\$HADOOP_OPTS -Xmx4g -XX:NewRatio=12 -XX:MaxHeapFreeRatio=40 -XX:MinHeapFreeRatio=15 -XX:-UseGCOverheadLimit\"
+  fi
+fi
+" >> $HIVE_NAME/conf/hive-env.sh
 
     # 删除连续空行为一个
     sed -i '/^$/{N;/^\n$/d}' $HIVE_NAME/conf/hive-env.sh
 
-    # 修改bin/hive
-    sed -i '/  sparkAssemblyPath/s/^/#/' $HIVE_NAME/bin/hive
-
     if [[ $HIVE_VERSION =~ ^1 ]]; then
+        # 修改bin/hive
+        sed -i '/  sparkAssemblyPath/s/^/#/' $HIVE_NAME/bin/hive
+
         cp $HIVE_NAME/conf/hive-log4j.properties.template $HIVE_NAME/conf/hive-log4j.properties
         cp $HIVE_NAME/conf/hive-exec-log4j.properties.template $HIVE_NAME/conf/hive-exec-log4j.properties
         cp $HIVE_NAME/conf/beeline-log4j.properties.template $HIVE_NAME/conf/beeline-log4j.properties
@@ -214,16 +185,22 @@ function config_hive()
         cp $HIVE_NAME/conf/hive-log4j2.properties.template $HIVE_NAME/conf/hive-log4j2.properties
         cp $HIVE_NAME/conf/hive-exec-log4j2.properties.template $HIVE_NAME/conf/hive-exec-log4j2.properties
         cp $HIVE_NAME/conf/beeline-log4j2.properties.template $HIVE_NAME/conf/beeline-log4j2.properties
+
+        # 日志
+        if [[ -n "$HIVE_LOG_DIR" ]]; then
+            sed -i "s@\(property\.hive\.log\.dir=\).*@\1${HIVE_LOG_DIR}@" $HIVE_NAME/conf/hive-log4j2.properties
+            sed -i "s@\(property\.hive\.log\.dir=\).*@\1${HIVE_LOG_DIR}@" $HIVE_NAME/conf/hive-exec-log4j2.properties
+        fi
     fi
 
-    # 读取hive-site.cfg文件配置hive-site.xml
+    # 配置hive-site.xml
     if [[ ! -f $HIVE_NAME/conf/hive-site.xml ]]; then
         cp $HIVE_NAME/conf/hive-default.xml.template $HIVE_NAME/conf/hive-site.xml
     fi
     hive_config | config_xml $HIVE_NAME/conf/hive-site.xml
 
     # mysql驱动
-    ls $LIB_DIR/mysql-connector-java-*.jar | xargs -r -I {} cp {} $HIVE_NAME/lib
+    find $DIR -maxdepth 1 -type f -name "mysql-connector-java-*.jar" | xargs -r -I {} cp {} $HIVE_NAME/lib
 }
 
 # 安装
@@ -264,10 +241,6 @@ function install()
                 ln -snf $HIVE_INSTALL_DIR/$HIVE_NAME $HIVE_HOME
             fi
 
-            # 给hive.log文件授权
-            touch $HIVE_LOG_DIR/$HIVE_LOG_FILE
-            chmod g+w $HIVE_LOG_DIR/$HIVE_LOG_FILE
-
             # 配置文件
             if [[ $HIVE_CONF_DIR != $HIVE_HOME/conf ]]; then
                 mkdir -p $HIVE_CONF_DIR
@@ -286,9 +259,6 @@ function install()
             if [[ `basename $HIVE_HOME` != $HIVE_NAME ]]; then
                 autossh "$owner_passwd" ${HIVE_USER}@${ip} "ln -snf $HIVE_INSTALL_DIR/$HIVE_NAME $HIVE_HOME"
             fi
-
-            autossh "$admin_passwd" ${admin_user}@${ip} "touch $HIVE_LOG_DIR/$HIVE_LOG_FILE"
-            autossh "$admin_passwd" ${admin_user}@${ip} "chmod g+w $HIVE_LOG_DIR/$HIVE_LOG_FILE"
 
             if [[ $HIVE_CONF_DIR != $HIVE_HOME/conf ]]; then
                 autossh "$admin_passwd" ${admin_user}@${ip} "mkdir -p $HIVE_CONF_DIR"
@@ -327,6 +297,12 @@ function init()
         su -l $HDFS_USER -c "hdfs dfs -chown -R ${HIVE_USER}:${HIVE_GROUP} $YARN_STAG_DIR/$HIVE_USER"
         su -l $HDFS_USER -c "hdfs dfs -chmod -R g+x $YARN_STAG_DIR"
     fi
+
+    # 给hive.log文件授权
+    echo "$HOSTS" | while read ip hostname admin_user admin_passwd owner_passwd others; do
+        autossh "$owner_passwd" ${HIVE_USER}@${ip} "touch $HIVE_LOG_DIR/hive.log"
+        autossh "$owner_passwd" ${HIVE_USER}@${ip} "chmod g+w $HIVE_LOG_DIR/hive.log"
+    done
 
     # 启动hive集群
     start

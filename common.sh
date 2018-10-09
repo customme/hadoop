@@ -8,7 +8,7 @@
 
 source ./config.sh
 # 测试环境
-if [[ "$LOCAL_IP" =~ 192.168 ]]; then
+if [[ $SYS_MEMORY -lt 30 ]]; then
     source ./config-test.sh
 fi
 

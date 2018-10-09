@@ -25,26 +25,16 @@ HOSTS="10.10.10.61 yygz-61.gzserv.com root 123456 hbase123 hbase-master
 10.10.10.65 yygz-65.gzserv.com root 123456 hbase123 regionserver,zookeeper
 10.10.10.66 yygz-66.gzserv.com root 123456 hbase123 regionserver,zookeeper
 10.10.10.67 yygz-67.gzserv.com root 123456 hbase123 regionserver,zookeeper"
-# 测试环境
-if [[ "$LOCAL_IP" =~ 192.168 ]]; then
-HOSTS="192.168.1.178 hdpc1-mn01 root 123456 123456 hbase-master
-192.168.1.179 hdpc1-mn02 root 123456 123456 hbase-master
-192.168.1.227 hdpc1-sn001 root 123456 123456 regionserver,zookeeper
-192.168.1.229 hdpc1-sn002 root 123456 123456 regionserver,zookeeper
-192.168.1.230 hdpc1-sn003 root 123456 123456 regionserver,zookeeper"
-fi
 
-# hbase镜像
-HBASE_MIRROR=http://archive.apache.org/dist/hbase
+# hbase安装包名
 if [[ $HBASE_VERSION =~ ^0 ]]; then
     HBASE_NAME=hbase-${HBASE_VERSION}-hadoop2
 elif [[ $HBASE_VERSION =~ ^[12] ]]; then
     HBASE_NAME=hbase-${HBASE_VERSION}
 fi
-# hbase安装包名
 HBASE_PKG=${HBASE_NAME}-bin.tar.gz
 # hbase安装包下载地址
-HBASE_URL=$HBASE_MIRROR/$HBASE_VERSION/$HBASE_PKG
+HBASE_URL=http://mirror.bit.edu.cn/apache/hbase/$HBASE_VERSION/$HBASE_PKG
 
 # 相关目录
 HBASE_PID_DIR=$HBASE_TMP_DIR
@@ -52,9 +42,6 @@ HBASE_PID_DIR=$HBASE_TMP_DIR
 # 当前用户名，所属组
 THE_USER=$HBASE_USER
 THE_GROUP=$HBASE_GROUP
-
-# 用户hbase配置文件目录
-CONF_DIR=$CONF_DIR/hbase
 
 
 # 创建hbase相关目录
@@ -188,9 +175,7 @@ function config_hbase()
     echo "$HOSTS" | awk '$0 ~ /hbase-master/ {print $2}' | sed '1 d' > $HBASE_NAME/conf/backup-masters
 
     # hbase监控
-    if [[ -f $CONF_DIR/hadoop-metrics2-hbase.properties ]]; then
-        cp -f $CONF_DIR/hadoop-metrics2-hbase.properties $HBASE_NAME/conf
-    fi
+    find $DIR -maxdepth 1 -type f -name "hadoop-metrics2-hbase.properties" | xargs -r -I {} cp {} $HBASE_NAME/conf
 }
 
 # 安装

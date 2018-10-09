@@ -18,32 +18,22 @@ source ~/.bash_profile
 source $DIR/common.sh
 
 
-# flume镜像
-FLUME_MIRROR=http://mirror.bit.edu.cn/apache/flume
-FLUME_NAME=apache-flume-${FLUME_VERSION}-bin
 # flume安装包名
+FLUME_NAME=apache-flume-${FLUME_VERSION}-bin
 FLUME_PKG=${FLUME_NAME}.tgz
 # flume安装包下载地址
-FLUME_URL=$FLUME_MIRROR/$FLUME_VERSION/$FLUME_PKG
+FLUME_URL=http://mirror.bit.edu.cn/apache/flume/$FLUME_VERSION/$FLUME_PKG
 
 # flume集群配置信息
 # ip hostname admin_user admin_passwd owner_passwd
 HOSTS="10.10.20.104 yygz-104.tjinserv.com root 7oGTb2P3nPQKHWw1ZG flume123
 10.10.20.110 yygz-110.tjinserv.com root 7oGTb2P3nPQKHWw1ZG flume123
 10.10.20.111 yygz-111.tjinserv.com root 7oGTb2P3nPQKHWw1ZG flume123"
-# 测试环境
-if [[ "$LOCAL_IP" =~ 192.168 ]]; then
-HOSTS="192.168.1.227 hdpc1-sn001 root 123456 123456 0
-192.168.1.229 hdpc1-sn002 root 123456 123456 1
-192.168.1.230 hdpc1-sn003 root 123456 123456 2"
-fi
+
 
 # 当前用户名，所属组
 THE_USER=$FLUME_USER
 THE_GROUP=$FLUME_GROUP
-
-# 用户flume配置文件目录
-CONF_DIR=$CONF_DIR/flume
 
 
 # 创建flume相关目录

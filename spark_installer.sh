@@ -25,26 +25,16 @@ HOSTS="10.10.10.61 yygz-61.gzserv.com root 123456 spark123 spark-master
 10.10.10.65 yygz-65.gzserv.com root 123456 spark123 spark-worker,zookeeper
 10.10.10.66 yygz-66.gzserv.com root 123456 spark123 spark-worker,zookeeper
 10.10.10.67 yygz-67.gzserv.com root 123456 spark123 spark-worker,zookeeper"
-# 测试环境
-if [[ "$LOCAL_IP" =~ 192.168 ]]; then
-HOSTS="192.168.1.178 hdpc1-mn01 root 123456 123456 spark-master
-192.168.1.179 hdpc1-mn02 root 123456 123456 spark-master,history-server
-192.168.1.227 hdpc1-sn001 root 123456 123456 spark-worker,zookeeper
-192.168.1.229 hdpc1-sn002 root 123456 123456 spark-worker,zookeeper
-192.168.1.230 hdpc1-sn003 root 123456 123456 spark-worker,zookeeper"
-fi
 
-# spark镜像
-SPARK_MIRROR=http://mirror.bit.edu.cn/apache/spark
+# spark安装包名
 if [[ $HADOOP_VERSION =~ ^2.[23467] ]]; then
     SPARK_NAME=spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION:0:3}
 elif [[ $HADOOP_VERSION =~ ^2.5 ]]; then
     SPARK_NAME=spark-${SPARK_VERSION}-bin-hadoop2.4
 fi
-# spark安装包名
 SPARK_PKG=${SPARK_NAME}.tgz
 # spark安装包下载地址
-SPARK_URL=$SPARK_MIRROR/spark-$SPARK_VERSION/$SPARK_PKG
+SPARK_URL=http://mirror.bit.edu.cn/apache/spark/spark-$SPARK_VERSION/$SPARK_PKG
 
 # 相关目录
 SPARK_WORKER_DIR=$SPARK_LOG_DIR
@@ -60,9 +50,6 @@ SPARK_RECOVERY_MODE=ZOOKEEPER
 # 当前用户名，所属组
 THE_USER=$SPARK_USER
 THE_GROUP=$SPARK_GROUP
-
-# 用户spark配置文件目录
-CONF_DIR=$CONF_DIR/spark
 
 
 # 创建spark相关目录

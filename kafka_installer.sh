@@ -18,25 +18,17 @@ source ~/.bash_profile
 source $DIR/common.sh
 
 
-# kafka镜像
-KAFKA_MIRROR=http://mirror.bit.edu.cn/apache/kafka
-KAFKA_NAME=kafka_${SCALA_VERSION%.*}-$KAFKA_VERSION
 # kafka安装包名
 KAFKA_PKG=${KAFKA_NAME}.tgz
+KAFKA_NAME=kafka_${SCALA_VERSION%.*}-$KAFKA_VERSION
 # kafka安装包下载地址
-KAFKA_URL=$KAFKA_MIRROR/$KAFKA_VERSION/$KAFKA_PKG
+KAFKA_URL=http://mirror.bit.edu.cn/apache/kafka/$KAFKA_VERSION/$KAFKA_PKG
 
 # kafka集群配置信息
 # ip hostname admin_user admin_passwd owner_passwd id
-HOSTS="10.10.20.104 yygz-104.tjinserv.com root 7oGTb2P3nPQKHWw1ZG kafka123 0
-10.10.20.110 yygz-110.tjinserv.com root 7oGTb2P3nPQKHWw1ZG kafka123 1
-10.10.20.111 yygz-111.tjinserv.com root 7oGTb2P3nPQKHWw1ZG kafka123 2"
-# 测试环境
-if [[ "$LOCAL_IP" =~ 192.168 ]]; then
-HOSTS="192.168.1.227 hdpc1-sn001 root 123456 123456 0
-192.168.1.229 hdpc1-sn002 root 123456 123456 1
-192.168.1.230 hdpc1-sn003 root 123456 123456 2"
-fi
+HOSTS="10.10.10.65 yygz-65.gzserv.com root 123456 kafka123 0
+10.10.10.66 yygz-66.gzserv.com root 123456 kafka123 1
+10.10.10.67 yygz-67.gzserv.com root 123456 kafka123 2"
 
 # 相关目录
 KAFKA_PID_DIR=$KAFKA_TMP_DIR
@@ -44,9 +36,6 @@ KAFKA_PID_DIR=$KAFKA_TMP_DIR
 # 当前用户名，所属组
 THE_USER=$KAFKA_USER
 THE_GROUP=$KAFKA_GROUP
-
-# 用户kafka配置文件目录
-CONF_DIR=$CONF_DIR/kafka
 
 
 # 创建kafka相关目录
@@ -110,6 +99,33 @@ function set_env()
     done
 }
 
+# kafka 配置
+function kafka_config()
+{
+    echo "
+broker.id=0
+listeners=PLAINTEXT://:$KAFKA_SERVER_PORT
+num.network.threads=3
+num.io.threads=8
+socket.send.buffer.bytes=102400
+socket.receive.buffer.bytes=102400
+socket.request.max.bytes=104857600
+log.dirs=$KAFKA_LOG_DIR
+num.partitions=3
+num.recovery.threads.per.data.dir=1
+offsets.topic.replication.factor=1
+transaction.state.log.replication.factor=1
+transaction.state.log.min.isr=1
+log.retention.hours=168
+log.segment.bytes=1073741824
+log.retention.check.interval.ms=300000
+zookeeper.connect=yygz-65.gzserv.com:2181,yygz-66.gzserv.com:2181,yygz-67.gzserv.com:2181
+zookeeper.connection.timeout.ms=6000
+group.initial.rebalance.delay.ms=0
+auto.create.topics.enable=false
+"
+}
+
 # 安装
 function install()
 {
@@ -125,10 +141,9 @@ function install()
     # 解压kafka安装包
     tar -zxf $KAFKA_PKG
 
-    # 配置kafka
-    cp -f $CONF_DIR/server.properties $KAFKA_NAME/config
-    sed -i "/broker.id=/ a\\\nport=${KAFKA_SERVER_PORT}" $KAFKA_NAME/config/server.properties
-    sed -i "s@\(log.dirs=\).*@\1${KAFKA_LOG_DIR}@" $KAFKA_NAME/config/server.properties
+    # 配置 server.properties
+    kafka_config > $KAFKA_NAME/config/server.properties
+
     sed -i "/\$LOG_DIR/ i\export LOG_DIR=${KAFKA_LOG_DIR}" $KAFKA_NAME/bin/kafka-run-class.sh
     if [[ -n "$KAFKA_PID_DIR" ]]; then
         sed -i "$ a export PID_DIR=${KAFKA_PID_DIR}" $KAFKA_NAME/bin/kafka-server-start.sh
