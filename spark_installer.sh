@@ -158,6 +158,11 @@ function config_spark()
 
     # spark-defaults.conf
     cp $SPARK_NAME/conf/spark-defaults.conf.template $SPARK_NAME/conf/spark-defaults.conf
+    if [[ -n "$SPARK_HISTORY_LOG_DIR" ]]; then
+        sed -i "$ a spark.eventLog.enabled           true" $SPARK_NAME/conf/spark-defaults.conf
+        sed -i "$ a spark.eventLog.dir               $SPARK_HISTORY_LOG_DIR" $SPARK_NAME/conf/spark-defaults.conf
+        sed -i "$ a spark.eventLog.compress          true" $SPARK_NAME/conf/spark-defaults.conf
+    fi
 
     # log4j
     cp $SPARK_NAME/conf/log4j.properties.template $SPARK_NAME/conf/log4j.properties
@@ -255,10 +260,6 @@ function init()
     if [[ -n "$SPARK_HISTORY_LOG_DIR" ]]; then
         su -l $HDFS_USER -c "hdfs dfs -mkdir -p $SPARK_HISTORY_LOG_DIR"
         su -l $HDFS_USER -c "hdfs dfs -chown -R ${SPARK_USER}:${SPARK_GROUP} $SPARK_HISTORY_LOG_DIR"
-
-        sed -i "$ a spark.eventLog.enabled           true" $SPARK_NAME/conf/spark-defaults.conf
-        sed -i "$ a spark.eventLog.dir               $SPARK_HISTORY_LOG_DIR" $SPARK_NAME/conf/spark-defaults.conf
-        sed -i "$ a spark.eventLog.compress          true" $SPARK_NAME/conf/spark-defaults.conf
     fi
 
     # 启动spark集群

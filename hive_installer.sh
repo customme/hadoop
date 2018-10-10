@@ -122,17 +122,17 @@ hive.zookeeper.session.timeout=1200000
 
     # Client
     echo "
-hive.exec.scratchdir=/hive/tmp
+hive.exec.scratchdir=/tmp/hive
 hive.exec.local.scratchdir=$HIVE_TMP_DIR
 hive.querylog.location=$HIVE_LOG_DIR/query
 hive.server2.logging.operation.log.location=$HIVE_LOG_DIR/operation
 "
 
-    local metastores=`echo "$HOSTS" | awk '$6 ~ /metastore/ {printf("%s:%s,",$2,"'$HIVE_METASTORE_PORT'")}' | sed 's/,$//'`
+    local metastores=`echo "$HOSTS" | awk '$6 ~ /metastore/ {printf("thrift://%s:%s,",$2,"'$HIVE_METASTORE_PORT'")}' | sed 's/,$//'`
 
     # MetaStore HA
     echo "
-hive.metastore.uris=thrift://$metastores
+hive.metastore.uris=$metastores
 "
 }
 
@@ -188,8 +188,8 @@ fi
 
         # 日志
         if [[ -n "$HIVE_LOG_DIR" ]]; then
-            sed -i "s@\(property\.hive\.log\.dir=\).*@\1${HIVE_LOG_DIR}@" $HIVE_NAME/conf/hive-log4j2.properties
-            sed -i "s@\(property\.hive\.log\.dir=\).*@\1${HIVE_LOG_DIR}@" $HIVE_NAME/conf/hive-exec-log4j2.properties
+            sed -i "s@\(property\.hive\.log\.dir = \).*@\1${HIVE_LOG_DIR}@" $HIVE_NAME/conf/hive-log4j2.properties
+            sed -i "s@\(property\.hive\.log\.dir = \).*@\1${HIVE_LOG_DIR}@" $HIVE_NAME/conf/hive-exec-log4j2.properties
         fi
     fi
 
@@ -303,6 +303,11 @@ function init()
         autossh "$owner_passwd" ${HIVE_USER}@${ip} "touch $HIVE_LOG_DIR/hive.log"
         autossh "$owner_passwd" ${HIVE_USER}@${ip} "chmod g+w $HIVE_LOG_DIR/hive.log"
     done
+
+    # 初始化
+    if [[ $HIVE_VERSION =~ ^2 ]]; then
+        $HIVE_HOME/bin/schematool -dbType mysql -initSchema
+    fi
 
     # 启动hive集群
     start
