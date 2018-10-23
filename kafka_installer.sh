@@ -19,8 +19,8 @@ source $DIR/common.sh
 
 
 # kafka安装包名
-KAFKA_PKG=${KAFKA_NAME}.tgz
 KAFKA_NAME=kafka_${SCALA_VERSION%.*}-$KAFKA_VERSION
+KAFKA_PKG=${KAFKA_NAME}.tgz
 # kafka安装包下载地址
 KAFKA_URL=http://mirror.bit.edu.cn/apache/kafka/$KAFKA_VERSION/$KAFKA_PKG
 
@@ -45,7 +45,7 @@ function create_dir()
         if [[ "$ip" = "$LOCAL_IP" ]]; then
             # 修改broker.id host.name
             sed -i "s/\(broker.id=\).*/\1${id}/" $KAFKA_HOME/config/server.properties
-            sed -i "/broker.id=/ a\\\nhost.name=${hostname}" $KAFKA_HOME/config/server.properties
+            sed -i "/broker.id=/ a\host.name=${hostname}" $KAFKA_HOME/config/server.properties
 
             # 创建kafka日志文件目录
             if [[ -n "$KAFKA_LOG_DIR" ]]; then
@@ -60,7 +60,7 @@ function create_dir()
             fi
         else
             autossh "$admin_passwd" ${admin_user}@${ip} "sed -i \"s/\(broker.id=\).*/\1${id}/\" $KAFKA_HOME/config/server.properties"
-            autossh "$admin_passwd" ${admin_user}@${ip} "sed -i \"/broker.id=/ a\\\\\nhost.name=${hostname}\" $KAFKA_HOME/config/server.properties"
+            autossh "$admin_passwd" ${admin_user}@${ip} "sed -i \"/broker.id=/ a\host.name=${hostname}\" $KAFKA_HOME/config/server.properties"
 
             if [[ -n "$KAFKA_LOG_DIR" ]]; then
                 autossh "$admin_passwd" ${admin_user}@${ip} "mkdir -p $KAFKA_LOG_DIR"
@@ -226,7 +226,7 @@ function print_usage()
 function reset_env()
 {
     echo "$HOSTS" | while read ip hostname admin_user admin_passwd others; do
-        autossh "$admin_passwd" ${admin_user}@${ip} "ps aux | grep -E QuorumPeerMain | grep -v grep | awk '{print \$2}' | xargs -r kill -9"
+        autossh "$admin_passwd" ${admin_user}@${ip} "ps aux | grep -E \"kafka.Kafka\" | grep -v grep | awk '{print \$2}' | xargs -r kill -9"
         autossh "$admin_passwd" ${admin_user}@${ip} "rm -rf $KAFKA_HOME $KAFKA_LOG_DIR /tmp/hsperfdata_$KAFKA_USER"
     done
 }
