@@ -279,6 +279,8 @@ function admin()
 
     # 查看消费组
     $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server $broker_list --describe --group group
+    $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server $broker_list --describe --group group --members
+    $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server $broker_list --describe --group group --members --verbose
 
     # 查看消费的offset
     $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server $broker_list --topic __consumer_offsets --formatter "kafka.coordinator.GroupMetadataManager\$OffsetsMessageFormatter" --from-beginning
