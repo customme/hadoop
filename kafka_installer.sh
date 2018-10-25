@@ -241,7 +241,7 @@ function admin()
     $KAFKA_HOME/bin/kafka-topics.sh --list --zookeeper $zk_list
 
     # 创建topic
-    $KAFKA_HOME/bin/kafka-topics.sh --create --replication-factor 2 --partition 3 --topic test --zookeeper $zk_list
+    $KAFKA_HOME/bin/kafka-topics.sh --create --replication-factor 2 --partitions 3 --topic test --zookeeper $zk_list
 
     # 查看topic详细
     $KAFKA_HOME/bin/kafka-topics.sh --describe --topic test --zookeeper $zk_list
@@ -270,9 +270,9 @@ function admin()
     $KAFKA_HOME/bin/kafka-console-producer.sh --broker-list $broker_list --topic test
 
     # consumer接收消息
-    $KAFKA_HOME/bin/kafka-console-consumer.sh --zookeeper $zk_list --topic test --from-beginning 100
+    $KAFKA_HOME/bin/kafka-console-consumer.sh --zookeeper $zk_list --topic test --from-beginning
     # 新版
-    $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server $broker_list --topic test --from-beginning 100
+    $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server $broker_list --topic test --from-beginning
 
     # 列出消费者组
     $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server $broker_list --list

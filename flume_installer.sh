@@ -20,16 +20,17 @@ source $DIR/common.sh
 
 # flume安装包名
 FLUME_NAME=apache-flume-${FLUME_VERSION}-bin
-FLUME_PKG=${FLUME_NAME}.tgz
+FLUME_PKG=${FLUME_NAME}.tar.gz
 # flume安装包下载地址
 FLUME_URL=http://mirror.bit.edu.cn/apache/flume/$FLUME_VERSION/$FLUME_PKG
 
 # flume集群配置信息
 # ip hostname admin_user admin_passwd owner_passwd
-HOSTS="10.10.20.104 yygz-104.tjinserv.com root 7oGTb2P3nPQKHWw1ZG flume123
-10.10.20.110 yygz-110.tjinserv.com root 7oGTb2P3nPQKHWw1ZG flume123
-10.10.20.111 yygz-111.tjinserv.com root 7oGTb2P3nPQKHWw1ZG flume123"
-
+HOSTS="10.10.10.61 yygz-61.gzserv.com root 123456 flume123
+10.10.10.64 yygz-64.gzserv.com root 123456 flume123
+10.10.10.65 yygz-65.gzserv.com root 123456 flume123
+10.10.10.66 yygz-66.gzserv.com root 123456 flume123
+10.10.10.67 yygz-67.gzserv.com root 123456 flume123"
 
 # 当前用户名，所属组
 THE_USER=$FLUME_USER
@@ -97,8 +98,13 @@ function install()
     tar -zxf $FLUME_PKG
 
     # 配置flume
-    cp -f $FLUME_HOME/conf/flume-env.sh.template $FLUME_HOME/conf/flume-env.sh
+    cp -f $FLUME_NAME/conf/flume-env.sh.template $FLUME_NAME/conf/flume-env.sh
+    sed -i "s@.*\(export JAVA_HOME=\).*@\1${JAVA_HOME}@" $FLUME_NAME/conf/flume-env.sh
+    sed -i 's/.*\(export JAVA_OPTS=.*-Xmx.*\)/\1/' $FLUME_NAME/conf/flume-env.sh
     # log4j
+    if [[ -n "$FLUME_LOG_DIR" ]]; then
+        sed -i "s@\(flume\.log\.dir=\).*@\1${FLUME_LOG_DIR}@" $FLUME_NAME/conf/log4j.properties
+    fi
 
     # 压缩配置好的flume
     mv -f $FLUME_PKG ${FLUME_PKG}.o
@@ -144,18 +150,6 @@ function install()
     set_env
 }
 
-# 启动flume集群
-function start()
-{
-    todo_fn
-}
-
-# 停止flume集群
-function stop()
-{
-    todo_fn
-}
-
 # 打印用法
 function print_usage()
 {
@@ -187,9 +181,8 @@ function main()
     # -c [add/delete] 创建用户
     # -h [hostname,hosts] 配置host
     # -i 安装集群
-    # -s [init/start/stop/restart] 启动/停止集群
     # -v debug模式
-    while getopts "c:h:is:v" name; do
+    while getopts "c:h:iv" name; do
         case "$name" in
             c)
                 local command="$OPTARG"
@@ -205,8 +198,6 @@ function main()
                 hosts_flag=1;;
             i)
                 install_flag=1;;
-            s)
-                start_cmd="$OPTARG";;
             v)
                 debug_flag=1;;
             ?)
@@ -229,8 +220,5 @@ function main()
 
     # 安装集群
     [[ $install_flag ]] && log_fn install
-
-    # 启动集群
-    [[ $start_cmd ]] && log_fn $start_cmd
 }
 main "$@"
