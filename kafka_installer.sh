@@ -123,6 +123,7 @@ zookeeper.connect=yygz-65.gzserv.com:2181,yygz-66.gzserv.com:2181,yygz-67.gzserv
 zookeeper.connection.timeout.ms=6000
 group.initial.rebalance.delay.ms=0
 auto.create.topics.enable=false
+delete.topic.enable=true
 "
 }
 
@@ -282,8 +283,12 @@ function admin()
     $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server $broker_list --describe --group group --members
     $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server $broker_list --describe --group group --members --verbose
 
-    # 查看消费的offset
+    # 查看消费的offset(已废弃)
     $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server $broker_list --topic __consumer_offsets --formatter "kafka.coordinator.GroupMetadataManager\$OffsetsMessageFormatter" --from-beginning
+    $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server $broker_list --describe --group group --offsets --verbose
+
+    # 重置offset
+    $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server $broker_list --group group --reset-offsets --execute --to-earliest --all-topics
 
     # kafka底层消费
     $KAFKA_HOME/bin/kafka-simple-consumer-shell.sh --broker-list $broker_list --partition 1 --offset 4 --max-messages 3 --topic test
