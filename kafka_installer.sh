@@ -289,6 +289,8 @@ function admin()
 
     # 重置offset
     $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server $broker_list --group group --reset-offsets --execute --to-earliest --all-topics
+    # 设置offset
+    $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server $broker_list --group group --topic topic --execute --reset-offsets --to-offset 80
 
     # kafka底层消费
     $KAFKA_HOME/bin/kafka-simple-consumer-shell.sh --broker-list $broker_list --partition 1 --offset 4 --max-messages 3 --topic test
