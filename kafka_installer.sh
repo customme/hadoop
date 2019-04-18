@@ -203,7 +203,7 @@ function start()
     debug "Start kafka cluster"
     echo "$HOSTS" | while read ip hostname admin_user admin_passwd owner_passwd id; do
         debug "Start kafka at host: $ip"
-        autossh "$owner_passwd" ${KAFKA_USER}@${ip} "nohup $KAFKA_HOME/bin/kafka-server-start.sh $KAFKA_HOME/config/server.properties > $KAFKA_LOG_DIR/kafka.out 2>&1 &"
+        autossh "$owner_passwd" ${KAFKA_USER}@${ip} "$KAFKA_HOME/bin/kafka-server-start.sh -daemon $KAFKA_HOME/config/server.properties"
     done
 }
 
