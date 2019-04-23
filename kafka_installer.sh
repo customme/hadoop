@@ -287,6 +287,18 @@ function admin()
     $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server $broker_list --topic __consumer_offsets --formatter "kafka.coordinator.GroupMetadataManager\$OffsetsMessageFormatter" --from-beginning
     $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server $broker_list --describe --group group --offsets --verbose
 
+    # 平衡leader
+    # 开启自动平衡 auto.leader.rebalance.enable=true
+    $KAFKA_HOME/bin/kafka-preferred-replica-election.sh --zookeeper $zk_list
+
+    # 重新分配分区副本
+    # 生成reassign计划
+    $KAFKA_HOME/bin/kafka-reassign-partitions.sh --zookeeper $zk_list --topics-to-move-json-file topics.json --broker-list "2,3" --generate
+    # 执行reassign计划
+    $KAFKA_HOME/bin/kafka-reassign-partitions.sh --zookeeper $zk_list --reassignment-json-file reassign-plan.json --execute
+    # 验证reassign是否完成
+    $KAFKA_HOME/bin/kafka-reassign-partitions.sh --zookeeper $zk_list --reassignment-json-file reassign-plan.json --verify
+
     # 重置offset
     $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server $broker_list --group group --reset-offsets --execute --to-earliest --all-topics
     # 设置offset
