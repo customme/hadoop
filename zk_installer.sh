@@ -245,6 +245,33 @@ function reset_env()
 # 管理
 function admin()
 {
+: '
+    # 创建节点
+    create /path data
+    # 创建顺序节点
+    create -s /path data
+    # 创建临时节点
+    create -e /path data
+    # 创建临时顺序节点
+    create -e -s /path data
+
+    # 获取数据
+    get /path
+    # 设置watch(只能在get中设置watch)
+    get /path 1
+
+    # 设置数据
+    set /path data [version]
+
+    # 检查状态
+    stat /path
+
+    # 删除节点
+    rmr /path
+    # 删除节点(没有子节点)
+    delete /path [version]
+'
+
     # zookeeper配置信息
     echo conf | nc hdpc1-sn001 2181
 
@@ -261,7 +288,7 @@ function admin()
     zkServer.sh start-foreground
 
     # 执行zookeeper命令
-    echo "ls /" zkCli.sh
+    echo "ls /" zkCli.sh -server ip:port
 
     # 查看日志
     java -cp $ZK_HOME/${ZK_NAME}.jar:$ZK_HOME/lib/slf4j-api-1.6.1.jar org.apache.zookeeper.server.LogFormatter log/version-2/log.100000001
